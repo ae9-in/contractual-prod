@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   User, Mail, Briefcase, Star, Link2, Clock,
-  CheckCircle, Activity, Save, Edit3, Building2, Award, Camera, Upload
+  CheckCircle, Activity, Save, Edit3, Building2, Award, Camera, Upload, Phone
 } from 'lucide-react';
 import { getProfile, updateProfile, updateProfilePhoto } from '../services/profileService';
 import { getUserRatingSummary } from '../services/ratingService';
@@ -28,6 +28,8 @@ export default function ProfilePage() {
     organizationName: '',
     organizationWebsite: '',
     organizationIndustry: '',
+    contactEmail: '',
+    contactPhone: '',
   });
   const [ratingSummary, setRatingSummary] = useState(defaultSummary);
   const [stats, setStats] = useState({ completed: 0, active: 0, total: 0 });
@@ -56,14 +58,19 @@ export default function ProfilePage() {
       setIsLoading(true);
       try {
         const { data } = await getProfile();
-        setForm(prev => ({ ...prev, ...data.profile }));
+        const incomingProfile = data?.profile || {};
+        setForm((prev) => ({
+          ...prev,
+          ...incomingProfile,
+          contactEmail: String(incomingProfile.contactEmail || '').trim() || (isFreelancer ? (user?.email || '') : String(incomingProfile.contactEmail || '')),
+        }));
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to load profile');
       } finally {
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [isFreelancer, user?.email]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -381,6 +388,25 @@ export default function ProfilePage() {
                 </div>
               )}
 
+              {isFreelancer && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label htmlFor="contactEmail" style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Mail size={16} color="#3b82f6" />
+                    Contact Email
+                  </label>
+                  <input
+                    id="contactEmail"
+                    className="input"
+                    type="email"
+                    placeholder="you@yourmail.com"
+                    value={form.contactEmail || ''}
+                    onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
+                    style={{ height: '50px', borderRadius: '14px' }}
+                  />
+                  {fieldErrors.contactEmail && <p style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 600, margin: 0 }}>{fieldErrors.contactEmail}</p>}
+                </div>
+              )}
+
               {isBusiness && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label htmlFor="organizationName" style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -420,6 +446,31 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+
+            {isFreelancer && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label htmlFor="contactPhone" style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Phone size={16} color="#3b82f6" />
+                    Contact Phone
+                  </label>
+                  <input
+                    id="contactPhone"
+                    className="input"
+                    placeholder="9876543210"
+                    value={form.contactPhone || ''}
+                    onChange={(e) => {
+                      const digitsOnly = String(e.target.value || '').replace(/\D/g, '').slice(0, 10);
+                      setForm({ ...form, contactPhone: digitsOnly });
+                    }}
+                    inputMode="numeric"
+                    maxLength={10}
+                    style={{ height: '50px', borderRadius: '14px' }}
+                  />
+                  {fieldErrors.contactPhone && <p style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 600, margin: 0 }}>{fieldErrors.contactPhone}</p>}
+                </div>
+              </div>
+            )}
 
             {isBusiness && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>

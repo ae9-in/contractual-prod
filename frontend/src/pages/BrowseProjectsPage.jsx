@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Search,
   Filter,
@@ -44,9 +44,10 @@ export default function BrowseProjectsPage() {
   const { addToast } = useToast();
   const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ minBudget: '', maxBudget: '', category: '' });
   const [preferredSkills, setPreferredSkills] = useState([]);
-  const [usePreferences, setUsePreferences] = useState(searchParams.get('pref') !== '0');
+  const [usePreferences, setUsePreferences] = useState(searchParams.get('pref') === '1');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [applyingProjectId, setApplyingProjectId] = useState(null);
@@ -59,12 +60,13 @@ export default function BrowseProjectsPage() {
     try {
       setIsLoading(true);
       const { data } = await getProjects(params);
-      let filtered = data.projects;
+      const allProjects = Array.isArray(data?.projects) ? data.projects : [];
+      let filtered = allProjects;
 
       if (filters.category) {
         const group = SKILLS_TAXONOMY.find((item) => item.category === filters.category);
         const allowedSkills = new Set((group?.subcategories || []).flatMap((sub) => sub.skills));
-        filtered = data.projects.filter((project) => String(project.skillsRequired || '')
+        filtered = allProjects.filter((project) => String(project.skillsRequired || '')
           .split(',')
           .map((skill) => skill.trim())
           .some((skill) => allowedSkills.has(skill)));
@@ -95,8 +97,22 @@ export default function BrowseProjectsPage() {
     if (usePreferences && preferredSkills.length) {
       filtered = filtered.filter((project) => matchesAnySkill(project.skillsRequired, preferredSkills));
     }
+    const query = String(searchTerm || '').trim().toLowerCase();
+    if (query) {
+      filtered = filtered.filter((project) => {
+        const haystack = [
+          project.title,
+          project.description,
+          project.skillsRequired,
+          project.businessName,
+        ]
+          .map((value) => String(value || '').toLowerCase())
+          .join(' ');
+        return haystack.includes(query);
+      });
+    }
     return filtered;
-  }, [projects, usePreferences, preferredSkills]);
+  }, [projects, usePreferences, preferredSkills, searchTerm]);
 
   const togglePreferences = () => {
     setUsePreferences((prev) => {
@@ -151,20 +167,45 @@ export default function BrowseProjectsPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(148,163,184,0.22)', background: 'rgba(15,23,42,0.2)', borderRadius: '14px', padding: '12px 14px' }}>
                 <Zap size={20} color="#93c5fd" />
                 <div>
-                  <p style={{ margin: 0, color: 'rgba(226,232,240,0.78)', fontWeight: 800, fontSize: '0.84rem' }}>Neural Match</p>
-                  <button
-                    onClick={togglePreferences}
-                    disabled={!preferredSkills.length}
-                    style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.88rem', fontWeight: 800, color: '#bfdbfe', cursor: 'pointer' }}
-                  >
-                    {usePreferences ? 'Override Constraints' : 'Focus on My Expertise'}
-                  </button>
+                  <p style={{ margin: 0, color: 'rgba(226,232,240,0.78)', fontWeight: 800, fontSize: '0.84rem' }}>My Preferences</p>
+                </div>
+                <button
+                  onClick={togglePreferences}
+                  disabled={!preferredSkills.length}
+                  style={{
+                    border: '1px solid rgba(147,197,253,0.4)',
+                    background: usePreferences ? 'rgba(59,130,246,0.25)' : 'rgba(15,23,42,0.35)',
+                    color: '#dbeafe',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: preferredSkills.length ? 'pointer' : 'not-allowed',
+                    opacity: preferredSkills.length ? 1 : 0.55,
+                  }}
+                >
+                  {usePreferences ? 'On' : 'Off'}
+                </button>
+                <div>
+                  <p style={{ margin: 0, color: 'rgba(191,219,254,0.92)', fontWeight: 700, fontSize: '0.8rem' }}>
+                    {usePreferences ? 'Using skill filters' : 'Show all projects'}
+                  </p>
                 </div>
               </div>
             )}
           />
 
           <Card className="glass" style={{ padding: '24px', border: '1px solid rgba(79,70,229,0.14)', background: 'rgba(255,255,255,0.88)' }}>
+            <div style={{ marginBottom: '16px', position: 'relative' }}>
+              <Search size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#4f46e5' }} />
+              <input
+                className="input"
+                placeholder="Search by title, skill, company, or keywords..."
+                style={{ paddingLeft: '50px', background: '#fff' }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
               <div style={{ position: 'relative' }}>
                 <IndianRupee size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#4f46e5' }} />
@@ -215,36 +256,32 @@ export default function BrowseProjectsPage() {
         <div className="grid grid-auto" style={{ gap: '24px' }}>
           {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="card-ui skeleton-card" style={{ height: '280px', borderRadius: '24px', opacity: 0.5, background: '#fff', border: '1px solid #e2e8f0' }} />)}
         </div>
-      ) : (
-        <AnimatePresence mode="popLayout">
-          {filteredProjects.length > 0 ? (
+      ) : filteredProjects.length > 0 ? (
+        <motion.div
+          variants={containerVariants}
+          className="grid grid-auto stagger-grid"
+          style={{ gap: '24px', position: 'relative', zIndex: 5 }}
+        >
+          {filteredProjects.map((project) => (
             <motion.div
-              key="projects-grid"
-              variants={containerVariants}
-              className="grid grid-auto stagger-grid"
-              style={{ gap: '24px', position: 'relative', zIndex: 5 }}
+              key={project.id}
+              variants={itemVariants}
+              whileHover={{ y: -8, backgroundColor: '#fff', border: '1px solid rgba(79, 70, 229, 0.3)', boxShadow: '0 20px 40px rgba(79, 70, 229, 0.08)' }}
+              onClick={() => navigate(`/projects/${project.id}`)}
+              className="card-ui"
+              style={{ padding: '32px', border: '1px solid #e2e8f0', background: 'rgba(255, 255, 255, 0.8)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative', height: '100%' }}
             >
-              {filteredProjects.map((project) => (
-                <motion.div
-                  key={project.id}
-                  variants={itemVariants}
-                  layout
-                  whileHover={{ y: -8, backgroundColor: '#fff', border: '1px solid rgba(79, 70, 229, 0.3)', boxShadow: '0 20px 40px rgba(79, 70, 229, 0.08)' }}
-                  onClick={() => navigate(`/projects/${project.id}`)}
-                  className="card-ui"
-                  style={{ padding: '32px', border: '1px solid #e2e8f0', background: 'rgba(255, 255, 255, 0.8)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative', height: '100%' }}
-                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
                     <div style={{ flex: 1 }}>
                       <h3 style={{ margin: '0 0 8px', fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.25 }}>
                         {project.title}
                       </h3>
-                      <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{ width: '24px', height: '24px', background: 'rgba(79, 70, 229, 0.05)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Clock size={12} color="#4f46e5" />
                         </div>
                         Protocol by <span style={{ color: '#1e293b' }}>{project.businessName}</span>
-                      </p>
+                      </div>
                     </div>
                     <StatusBadge status={project.status} />
                   </div>
@@ -294,23 +331,21 @@ export default function BrowseProjectsPage() {
                       {project.hasApplied ? 'Submission Verfied' : 'Instant Apply'}
                     </Button>
                   </div>
-                </motion.div>
-              ))}
             </motion.div>
-          ) : (
-            <motion.div key="empty" className="card-ui" style={{ border: '1px dashed #e2e8f0', padding: '120px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', background: 'rgba(255, 255, 255, 0.5)' }}>
-              <EmptyState
-                icon={<Search size={64} color="#e2e8f0" />}
-                message={usePreferences ? 'No projects currently match your expert profile.' : 'No projects found in this sector matching your parameters.'}
-              />
-              {usePreferences && (
-                <Button variant="secondary" onClick={togglePreferences} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b' }}>
-                  Reset Strategy Filter
-                </Button>
-              )}
-            </motion.div>
+          ))}
+        </motion.div>
+      ) : (
+        <motion.div className="card-ui" style={{ border: '1px dashed #e2e8f0', padding: '120px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', background: 'rgba(255, 255, 255, 0.5)' }}>
+          <EmptyState
+            icon={<Search size={64} color="#e2e8f0" />}
+            message={usePreferences ? 'No projects currently match your expert profile.' : 'No projects found in this sector matching your parameters.'}
+          />
+          {usePreferences && (
+            <Button variant="secondary" onClick={togglePreferences} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b' }}>
+              Reset Strategy Filter
+            </Button>
           )}
-        </AnimatePresence>
+        </motion.div>
       )}
     </motion.section>
   );

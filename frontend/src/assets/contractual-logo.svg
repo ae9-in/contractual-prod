@@ -1,0 +1,52 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="purpleMain" x1="132" y1="146" x2="374" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B51E4"/>
+      <stop offset="1" stop-color="#5C35C2"/>
+    </linearGradient>
+    <linearGradient id="purpleShade" x1="150" y1="166" x2="354" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8E66ED"/>
+      <stop offset="1" stop-color="#6A43CB"/>
+    </linearGradient>
+    <linearGradient id="orangeMain" x1="180" y1="96" x2="396" y2="156" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFA92C"/>
+      <stop offset="1" stop-color="#FF9E1B"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" fill="#FFFFFF"/>
+  <!-- Outer C -->
+  <path
+    d="M389 365c-28 31-74 55-133 55-105 0-184-79-184-183 0-44 14-87 41-121l31 26c-20 27-31 59-31 95 0 82 60 142 143 142 47 0 83-17 107-42 19-20 50-20 68-2 16 16 15 43-2 61z"
+    fill="url(#purpleMain)"
+  />
+
+  <!-- Inner shaded stroke -->
+  <path
+    d="M369 360c-25 25-63 42-113 42-90 0-156-65-156-156 0-41 13-77 37-107l17 14c-20 27-31 58-31 93 0 78 55 132 133 132 42 0 74-14 96-34 10-10 20-12 29-11 5 1 10 4 14 8 10 10 1 16-26 35z"
+    fill="url(#purpleShade)"
+    opacity=".9"
+  />
+
+  <!-- Top orange arm -->
+  <path
+    d="M190 115c22-14 50-22 82-22 58 0 109 24 137 56 15 16 12 42-6 55-16 11-39 9-52-6-20-22-50-37-84-37-25 0-46 6-63 17-18 12-42 7-54-11-11-17-6-40 11-52 9-6 19-12 29-16z"
+    fill="url(#orangeMain)"
+  />
+
+  <!-- Handshake-inspired white divider -->
+  <path
+    d="M192 230c11-6 24-4 33 4l10 10c6 6 6 16 0 22l-17 17c-8 8-19 13-30 13h-29c-10 0-19-8-19-18 0-10 8-18 18-18h14l8-8-10-10c-7-7-7-18 0-25 6-7 15-9 22-7z"
+    fill="#FFFFFF"
+  />
+  <path
+    d="M226 242l14-14c10-10 26-10 36 0 7 7 9 17 5 26l-13 27c-8 16-24 28-42 32l-28 6c-10 2-20-4-22-14-2-10 4-20 14-22l23-5 13-13-9-9c-8-8-8-20 0-28 2-2 6-4 9-6z"
+    fill="#FFFFFF"
+  />
+
+  <!-- Orange handshake accent lines -->
+  <rect x="126" y="250" width="54" height="12" rx="6" transform="rotate(-12 126 250)" fill="#FFA92C"/>
+  <rect x="122" y="272" width="60" height="12" rx="6" transform="rotate(-12 122 272)" fill="#FFA92C"/>
+  <rect x="126" y="296" width="54" height="12" rx="6" transform="rotate(-12 126 296)" fill="#FFA92C"/>
+  <rect x="135" y="320" width="40" height="12" rx="6" transform="rotate(-12 135 320)" fill="#FFA92C"/>
+</svg>

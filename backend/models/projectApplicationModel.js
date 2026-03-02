@@ -36,6 +36,7 @@ async function listByProjectWithFreelancerProfile(projectId) {
       pa.cover_letter AS coverLetter, pa.status, pa.created_at AS createdAt,
       u.name AS freelancerName, u.email AS freelancerEmail,
       fp.skills, fp.bio, fp.portfolio_link AS portfolioLink, fp.experience_years AS experienceYears,
+      fp.contact_email AS contactEmail, fp.contact_phone AS contactPhone,
       COALESCE(ROUND((SELECT AVG(pr.rating) FROM project_ratings pr WHERE pr.rated_user_id = pa.freelancer_id), 2), 0) AS averageRating,
       (SELECT COUNT(*) FROM project_ratings pr WHERE pr.rated_user_id = pa.freelancer_id) AS totalRatings,
       (SELECT COUNT(*) FROM project_ratings pr WHERE pr.rated_user_id = pa.freelancer_id AND pr.rating = 5) AS rating5Count,

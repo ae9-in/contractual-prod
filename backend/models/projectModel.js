@@ -83,11 +83,14 @@ async function findById(id, options = {}) {
       p.reference_link AS referenceLink, p.reference_files AS referenceFiles,
       p.submission_text AS submissionText, p.submission_link AS submissionLink,
       p.submission_files AS submissionFiles, p.created_at AS createdAt, u.name AS businessName,
-      fu.name AS freelancerName
+      fu.name AS freelancerName,
+      fp.contact_email AS freelancerContactEmail,
+      fp.contact_phone AS freelancerContactPhone
       ${applicantSelect}
      FROM projects p
      INNER JOIN users u ON u.id = p.business_id
      LEFT JOIN users fu ON fu.id = p.freelancer_id
+     LEFT JOIN freelancer_profiles fp ON fp.user_id = p.freelancer_id
      WHERE p.id = ? LIMIT 1`,
     includeApplicantFields ? [viewerId, viewerId, id] : [id],
   );
@@ -141,11 +144,14 @@ async function list({ status, minBudget, maxBudget, skill, freelancerId, viewerI
       p.reference_link AS referenceLink, p.reference_files AS referenceFiles,
       p.submission_text AS submissionText, p.submission_link AS submissionLink,
       p.submission_files AS submissionFiles, p.created_at AS createdAt, u.name AS businessName,
-      fu.name AS freelancerName
+      fu.name AS freelancerName,
+      fp.contact_email AS freelancerContactEmail,
+      fp.contact_phone AS freelancerContactPhone
       ${applicantSelect}
      FROM projects p
      INNER JOIN users u ON u.id = p.business_id
      LEFT JOIN users fu ON fu.id = p.freelancer_id
+     LEFT JOIN freelancer_profiles fp ON fp.user_id = p.freelancer_id
      ${where}
      ORDER BY p.created_at DESC`,
     queryParams,
@@ -159,7 +165,8 @@ async function listByBusiness(businessId) {
       skills_required AS skillsRequired, deadline, status, freelancer_id AS freelancerId,
       reference_link AS referenceLink, reference_files AS referenceFiles,
       submission_text AS submissionText, submission_link AS submissionLink,
-      submission_files AS submissionFiles, created_at AS createdAt
+      submission_files AS submissionFiles, created_at AS createdAt,
+      NULL AS freelancerContactEmail, NULL AS freelancerContactPhone
      FROM projects
      WHERE business_id = ?
      ORDER BY created_at DESC`,

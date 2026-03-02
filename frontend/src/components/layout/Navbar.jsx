@@ -7,6 +7,7 @@ import { getNotifications } from '../../services/notificationService';
 import { getProfile } from '../../services/profileService';
 import { connectRealtime, onRealtime } from '../../services/realtimeService';
 import { getStoredToken } from '../../utils/authStorage';
+import brandLogo from '../../assets/contractual-logo-exact.png';
 
 function cls({ isActive }) {
   return `top-nav-link${isActive ? ' top-nav-link-active' : ''}`;
@@ -151,8 +152,27 @@ export default function Navbar() {
           className="brand-logo"
           whileHover={{ scale: 1.05, rotate: 5 }}
           whileTap={{ scale: 0.95 }}
+          style={{
+            width: '44px',
+            height: '44px',
+            background: '#fff',
+            padding: '4px',
+            borderRadius: '12px',
+            boxShadow: '0 8px 16px rgba(59,130,246,0.18)',
+            overflow: 'visible',
+          }}
         >
-          C
+          <img
+            src={brandLogo}
+            alt="Contractual logo"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              display: 'block',
+              background: '#fff',
+            }}
+          />
         </motion.div>
         <div>
           <p className="brand-name">Contractual</p>

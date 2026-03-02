@@ -104,6 +104,7 @@ export default function ProjectDetailPage() {
   const canCompleteProject = Boolean(
     user?.role === 'business' && project?.status === 'Submitted' && payment?.status === 'Released',
   );
+  const canAddTip = Boolean(user?.role === 'business' && payment && payment.status !== 'Unfunded');
   const apiOrigin = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const buildProtectedFileUrl = (relativePath) => {
@@ -558,6 +559,22 @@ export default function ProjectDetailPage() {
               </div>
             </div>
 
+            {user?.role === 'business' && project.freelancerId && (project.freelancerContactEmail || project.freelancerContactPhone) && (
+              <div style={{ marginTop: '24px', padding: '18px 20px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                <h4 style={{ margin: '0 0 10px', fontSize: '1rem', fontWeight: 900, color: '#0f172a' }}>Freelancer Contact Details</h4>
+                {project.freelancerContactEmail && (
+                  <p style={{ margin: '0 0 6px', color: '#334155', fontWeight: 700 }}>
+                    Email: <a href={`mailto:${project.freelancerContactEmail}`} style={{ color: '#4f46e5', textDecoration: 'none' }}>{project.freelancerContactEmail}</a>
+                  </p>
+                )}
+                {project.freelancerContactPhone && (
+                  <p style={{ margin: 0, color: '#334155', fontWeight: 700 }}>
+                    Phone: <a href={`tel:${project.freelancerContactPhone}`} style={{ color: '#4f46e5', textDecoration: 'none' }}>{project.freelancerContactPhone}</a>
+                  </p>
+                )}
+              </div>
+            )}
+
             {(project.referenceLink || (project.referenceFiles || []).length > 0) && (
               <div className="stack" style={{ marginTop: '32px' }}>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>Project References</h3>
@@ -593,6 +610,30 @@ export default function ProjectDetailPage() {
                     </a>
                   </p>
                 )}
+                {(project.submissionFiles || []).length > 0 && (
+                  <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    {(project.submissionFiles || []).map((file) => (
+                      <a
+                        key={file.url}
+                        href={buildProtectedFileUrl(file.url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          padding: '8px 14px',
+                          background: '#fff',
+                          border: '1px solid rgba(16, 185, 129, 0.25)',
+                          borderRadius: '10px',
+                          color: '#047857',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                          fontSize: '0.86rem',
+                        }}
+                      >
+                        {file.name}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -619,6 +660,23 @@ export default function ProjectDetailPage() {
                 <textarea id="detail-submission" className="input" style={{ minHeight: '120px', resize: 'none', background: '#fff' }} value={submissionText} onChange={(e) => setSubmissionText(e.target.value)} disabled={isActing} />
                 <label className="label" htmlFor="detail-submission-link" style={{ marginTop: '20px', marginBottom: '8px', display: 'block', fontWeight: 700, color: '#475569' }}>Asset Link (Figma/GitHub/Drive)</label>
                 <input id="detail-submission-link" className="input" style={{ background: '#fff' }} placeholder="https://external-resource.com" value={submissionLink} onChange={(e) => setSubmissionLink(e.target.value)} disabled={isActing} />
+                <label className="label" htmlFor="detail-submission-files" style={{ marginTop: '20px', marginBottom: '8px', display: 'block', fontWeight: 700, color: '#475569' }}>
+                  Attach Files (optional)
+                </label>
+                <input
+                  id="detail-submission-files"
+                  className="input"
+                  type="file"
+                  multiple
+                  onChange={(e) => setSubmissionFiles(Array.from(e.target.files || []))}
+                  disabled={isActing}
+                  style={{ background: '#fff' }}
+                />
+                {submissionFiles.length > 0 && (
+                  <p style={{ margin: '8px 0 0', color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>
+                    {submissionFiles.length} file{submissionFiles.length > 1 ? 's' : ''} selected
+                  </p>
+                )}
                 <Button variant="primary" onClick={onSubmit} disabled={isActing} loading={isActing} style={{ marginTop: '30px', height: '60px', borderRadius: '16px', fontWeight: 900 }}>Finalize Submission</Button>
               </div>
             )}
@@ -662,6 +720,45 @@ export default function ProjectDetailPage() {
                           <Button variant="primary" onClick={onReleaseEscrow} disabled={isReleasingEscrow} loading={isReleasingEscrow} fullWidth style={{ height: '56px', borderRadius: '14px', fontWeight: 900 }}>
                             Release Global Assets Payout
                           </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {user?.role === 'business' && (
+                      <div style={{ marginTop: '24px', padding: '18px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'grid', gap: '10px' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>Add Tip</h4>
+                        <input
+                          className="input"
+                          type="number"
+                          min="1"
+                          step="1"
+                          placeholder="Tip amount"
+                          value={tipAmount}
+                          onChange={(e) => setTipAmount(e.target.value)}
+                          disabled={!canAddTip || isAddingTip}
+                          style={{ background: '#fff' }}
+                        />
+                        <input
+                          className="input"
+                          placeholder="Tip note (optional)"
+                          value={tipNote}
+                          onChange={(e) => setTipNote(e.target.value)}
+                          disabled={!canAddTip || isAddingTip}
+                          style={{ background: '#fff' }}
+                        />
+                        <Button
+                          variant="secondary"
+                          onClick={onAddTip}
+                          disabled={!canAddTip || isAddingTip || !String(tipAmount).trim()}
+                          loading={isAddingTip}
+                          style={{ borderRadius: '12px', fontWeight: 800 }}
+                        >
+                          Add Tip
+                        </Button>
+                        {!canAddTip && (
+                          <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                            Fund escrow first to enable tips.
+                          </p>
                         )}
                       </div>
                     )}
@@ -750,6 +847,21 @@ export default function ProjectDetailPage() {
                         <span key={skill} style={{ padding: '4px 12px', background: '#f1f5f9', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, color: '#475569' }}>{skill}</span>
                       ))}
                     </div>
+                    {(app.contactEmail || app.contactPhone || app.freelancerEmail) && (
+                      <div style={{ padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', display: 'grid', gap: '4px' }}>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Contact</p>
+                        {(app.contactEmail || app.freelancerEmail) && (
+                          <p style={{ margin: 0, fontSize: '0.86rem', color: '#334155', fontWeight: 700 }}>
+                            Email: {app.contactEmail || app.freelancerEmail}
+                          </p>
+                        )}
+                        {app.contactPhone && (
+                          <p style={{ margin: 0, fontSize: '0.86rem', color: '#334155', fontWeight: 700 }}>
+                            Phone: {app.contactPhone}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', lineHeight: 1.5 }}>{app.coverLetter || app.bio || "Candidate has not provided a strategic summary."}</p>
                     <Button onClick={() => onAcceptApplication(app.id)} disabled={app.status !== 'Pending'} fullWidth style={{ marginTop: 'auto', borderRadius: '12px', height: '48px', fontWeight: 800 }}>Assign Infrastructure</Button>
                   </div>

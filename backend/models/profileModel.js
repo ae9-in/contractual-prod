@@ -11,7 +11,9 @@ async function getByUserId(userId) {
       profile_photo_url AS profilePhotoUrl,
       organization_name AS organizationName,
       organization_website AS organizationWebsite,
-      organization_industry AS organizationIndustry
+      organization_industry AS organizationIndustry,
+      contact_email AS contactEmail,
+      contact_phone AS contactPhone
     FROM freelancer_profiles
     WHERE user_id = ? LIMIT 1`,
     [userId],
@@ -30,9 +32,11 @@ async function upsertByUserId(userId, profile) {
       profile_photo_url,
       organization_name,
       organization_website,
-      organization_industry
+      organization_industry,
+      contact_email,
+      contact_phone
     )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
      skills = VALUES(skills),
      bio = VALUES(bio),
@@ -41,7 +45,9 @@ async function upsertByUserId(userId, profile) {
      profile_photo_url = VALUES(profile_photo_url),
      organization_name = VALUES(organization_name),
      organization_website = VALUES(organization_website),
-     organization_industry = VALUES(organization_industry)`,
+     organization_industry = VALUES(organization_industry),
+     contact_email = VALUES(contact_email),
+     contact_phone = VALUES(contact_phone)`,
     [
       userId,
       profile.skills,
@@ -52,6 +58,8 @@ async function upsertByUserId(userId, profile) {
       profile.organizationName,
       profile.organizationWebsite,
       profile.organizationIndustry,
+      profile.contactEmail,
+      profile.contactPhone,
     ],
   );
   return getByUserId(userId);
@@ -68,9 +76,11 @@ async function updatePhotoByUserId(userId, profilePhotoUrl) {
       profile_photo_url,
       organization_name,
       organization_website,
-      organization_industry
+      organization_industry,
+      contact_email,
+      contact_phone
     )
-    VALUES (?, '', '', '', 0, ?, '', '', '')
+    VALUES (?, '', '', '', 0, ?, '', '', '', '', '')
     ON DUPLICATE KEY UPDATE profile_photo_url = VALUES(profile_photo_url)`,
     [userId, profilePhotoUrl],
   );

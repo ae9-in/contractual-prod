@@ -16,12 +16,14 @@ DROP TABLE IF EXISTS users;
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(120) NOT NULL,
-  email VARCHAR(190) NOT NULL,
+  email VARCHAR(190) NULL,
+  phone VARCHAR(30) NULL,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('business', 'freelancer') NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT uq_users_email UNIQUE (email)
+  CONSTRAINT uq_users_email UNIQUE (email),
+  CONSTRAINT uq_users_phone UNIQUE (phone)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS projects (
@@ -59,6 +61,8 @@ CREATE TABLE IF NOT EXISTS freelancer_profiles (
   organization_name VARCHAR(150) NULL,
   organization_website VARCHAR(255) NULL,
   organization_industry VARCHAR(120) NULL,
+  contact_email VARCHAR(190) NULL,
+  contact_phone VARCHAR(30) NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_profiles_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

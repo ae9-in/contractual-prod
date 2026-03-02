@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Twitter, Linkedin, Github, Mail, Shield, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import brandLogo from '../../assets/contractual-logo-exact.png';
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -36,9 +37,27 @@ export default function Footer() {
             <motion.div
               whileHover={{ rotate: 180, scale: 1.1 }}
               transition={{ type: 'spring', stiffness: 200 }}
-              style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg,#3b82f6,#6366f1)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.4rem', color: '#fff', boxShadow: '0 8px 20px rgba(59,130,246,0.4)' }}
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '14px',
+                overflow: 'visible',
+                boxShadow: '0 8px 20px rgba(59,130,246,0.4)',
+                background: '#fff',
+                padding: '6px',
+              }}
             >
-              C
+              <img
+                src={brandLogo}
+                alt="Contractual logo"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                  background: '#fff',
+                }}
+              />
             </motion.div>
             <span style={{ fontSize: '1.8rem', fontWeight: 900, fontFamily: '"Outfit", sans-serif', letterSpacing: '-0.03em', color: '#ffffff' }}>Contractual</span>
           </Link>
