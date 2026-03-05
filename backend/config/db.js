@@ -1,6 +1,13 @@
 const mysql = require('mysql2/promise');
 const env = require('./env');
 
-const pool = mysql.createPool(env.db);
+const poolConfig = { ...env.db };
+
+// Cloud MySQL providers (Aiven, PlanetScale, Railway) require SSL
+if (env.nodeEnv === 'production') {
+    poolConfig.ssl = { rejectUnauthorized: false };
+}
+
+const pool = mysql.createPool(poolConfig);
 
 module.exports = pool;

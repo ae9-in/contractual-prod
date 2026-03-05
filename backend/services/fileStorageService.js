@@ -1,73 +1,39 @@
-const fs = require('fs');
 const path = require('path');
-const { v2: cloudinary } = require('cloudinary');
-const env = require('../config/env');
+const { resolveUploadsRoot } = require('../utils/uploadsPath');
 
-const cloudinaryEnabled = Boolean(
-  env.cloudinary.cloudName && env.cloudinary.apiKey && env.cloudinary.apiSecret,
-);
+/**
+ * Persist a single uploaded file (already saved to disk by multer).
+ * Returns an object with the public URL for the file.
+ */
+async function persistUploadedFile(file, { folder = '', localRoutePrefix = '/uploads' } = {}) {
+    if (!file) return null;
 
-if (cloudinaryEnabled) {
-  cloudinary.config({
-    cloud_name: env.cloudinary.cloudName,
-    api_key: env.cloudinary.apiKey,
-    api_secret: env.cloudinary.apiSecret,
-  });
-}
+    const uploadsRoot = resolveUploadsRoot();
+    const folderDir = folder ? path.join(uploadsRoot, folder) : uploadsRoot;
 
-async function cleanupLocalTempFile(filePath) {
-  if (!filePath) return;
-  try {
-    await fs.promises.unlink(filePath);
-  } catch {
-    // Best effort cleanup only.
-  }
-}
+    // multer already saved the file; just build the public URL
+    const filename = path.basename(file.path || file.filename);
+    const url = `${localRoutePrefix}/${filename}`;
 
-function buildLocalFileUrl(localRoutePrefix, fileName) {
-  return `${localRoutePrefix}/${encodeURIComponent(fileName)}`;
-}
-
-async function persistUploadedFile(file, { folder, localRoutePrefix }) {
-  if (!file) return null;
-
-  if (!cloudinaryEnabled) {
     return {
-      name: file.originalname,
-      url: buildLocalFileUrl(localRoutePrefix, file.filename),
-      size: file.size,
-      mimeType: file.mimetype,
+        url,
+        originalName: file.originalname || filename,
+        size: file.size || 0,
     };
-  }
-
-  const folderName = path.posix.join(env.cloudinary.folder, folder);
-  const uploadResult = await cloudinary.uploader.upload(file.path, {
-    folder: folderName,
-    resource_type: 'auto',
-    use_filename: true,
-    unique_filename: true,
-    overwrite: false,
-  });
-
-  await cleanupLocalTempFile(file.path);
-
-  return {
-    name: file.originalname,
-    url: uploadResult.secure_url,
-    size: file.size,
-    mimeType: file.mimetype,
-  };
 }
 
-async function persistUploadedFiles(files, options) {
-  const list = Array.isArray(files) ? files : [];
-  const uploaded = await Promise.all(list.map((file) => persistUploadedFile(file, options)));
-  return uploaded.filter(Boolean);
+/**
+ * Persist an array of uploaded files.
+ * Returns an array of { url, originalName, size } objects.
+ */
+async function persistUploadedFiles(files, options = {}) {
+    if (!files || !Array.isArray(files) || files.length === 0) return [];
+    const results = [];
+    for (const file of files) {
+        const result = await persistUploadedFile(file, options);
+        if (result) results.push(result);
+    }
+    return results;
 }
 
-module.exports = {
-  cloudinaryEnabled,
-  persistUploadedFile,
-  persistUploadedFiles,
-};
-
+module.exports = { persistUploadedFile, persistUploadedFiles };
