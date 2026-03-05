@@ -32,6 +32,12 @@ const env = {
     keySecret: readEnv('RAZORPAY_KEY_SECRET'),
     webhookSecret: readEnv('RAZORPAY_WEBHOOK_SECRET'),
   },
+  cloudinary: {
+    cloudName: readEnv('CLOUDINARY_CLOUD_NAME'),
+    apiKey: readEnv('CLOUDINARY_API_KEY'),
+    apiSecret: readEnv('CLOUDINARY_API_SECRET'),
+    folder: readEnv('CLOUDINARY_FOLDER', 'contractual'),
+  },
 };
 
 const required = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_NAME', 'JWT_SECRET'];

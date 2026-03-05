@@ -1,10 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { resolveUploadsRoot } = require('../utils/uploadsPath');
 
-const submissionsDir = path.join(process.cwd(), 'uploads', 'submissions');
-const projectReferencesDir = path.join(process.cwd(), 'uploads', 'project-references');
-const profilePhotosDir = path.join(process.cwd(), 'uploads', 'profile-photos');
+const uploadsRoot = resolveUploadsRoot();
+const submissionsDir = path.join(uploadsRoot, 'submissions');
+const projectReferencesDir = path.join(uploadsRoot, 'project-references');
+const profilePhotosDir = path.join(uploadsRoot, 'profile-photos');
 fs.mkdirSync(submissionsDir, { recursive: true });
 fs.mkdirSync(projectReferencesDir, { recursive: true });
 fs.mkdirSync(profilePhotosDir, { recursive: true });

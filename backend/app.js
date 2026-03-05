@@ -1,5 +1,4 @@
 const express = require('express');
-const path = require('path');
 const cors = require('cors');
 const env = require('./config/env');
 const authRoutes = require('./routes/authRoutes');
@@ -12,6 +11,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const paymentController = require('./controllers/paymentController');
 const errorMiddleware = require('./middleware/errorMiddleware');
 const assetAuthMiddleware = require('./middleware/assetAuthMiddleware');
+const { resolveUploadsRoot } = require('./utils/uploadsPath');
 
 const app = express();
 
@@ -31,7 +31,7 @@ app.use(cors(corsOptions));
 app.use(require('morgan')('dev'));
 app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), paymentController.handleGatewayWebhook);
 app.use(express.json());
-app.use('/uploads', assetAuthMiddleware, express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', assetAuthMiddleware, express.static(resolveUploadsRoot()));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

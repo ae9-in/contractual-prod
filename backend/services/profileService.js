@@ -2,6 +2,7 @@ const { z } = require('zod');
 const profileModel = require('../models/profileModel');
 const userModel = require('../models/userModel');
 const ApiError = require('../utils/ApiError');
+const { persistUploadedFile } = require('./fileStorageService');
 
 const nullableTrimmedString = (max = 2000) => z.preprocess(
   (value) => {
@@ -82,7 +83,11 @@ async function updateProfilePhoto(userId, file) {
   if (!file) {
     throw new ApiError(400, 'Profile photo is required');
   }
-  const profilePhotoUrl = `/uploads/profile-photos/${file.filename}`;
+  const uploaded = await persistUploadedFile(file, {
+    folder: 'profile-photos',
+    localRoutePrefix: '/uploads/profile-photos',
+  });
+  const profilePhotoUrl = uploaded.url;
   return profileModel.updatePhotoByUserId(userId, profilePhotoUrl);
 }
 

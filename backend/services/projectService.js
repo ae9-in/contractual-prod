@@ -4,6 +4,7 @@ const projectApplicationModel = require('../models/projectApplicationModel');
 const paymentModel = require('../models/paymentModel');
 const notificationService = require('./notificationService');
 const ApiError = require('../utils/ApiError');
+const { persistUploadedFiles } = require('./fileStorageService');
 
 const optionalUrlSchema = z.preprocess(
   (value) => (typeof value === 'string' ? value.trim() : value),
@@ -29,12 +30,10 @@ const applySchema = z.object({
 
 async function createProject(data, businessId) {
   const payload = createProjectSchema.parse(data);
-  const projectReferenceFiles = (data.projectReferenceFiles || []).map((file) => ({
-    name: file.originalname,
-    url: `/uploads/project-references/${file.filename}`,
-    size: file.size,
-    mimeType: file.mimetype,
-  }));
+  const projectReferenceFiles = await persistUploadedFiles(data.projectReferenceFiles || [], {
+    folder: 'project-references',
+    localRoutePrefix: '/uploads/project-references',
+  });
 
   return projectModel.create({
     ...payload,
@@ -166,12 +165,10 @@ async function submitProject(projectId, freelancerId, data) {
     throw new ApiError(403, 'Only assigned freelancer can submit work');
   }
 
-  const submissionFiles = (data.submissionFiles || []).map((file) => ({
-    name: file.originalname,
-    url: `/uploads/submissions/${file.filename}`,
-    size: file.size,
-    mimeType: file.mimetype,
-  }));
+  const submissionFiles = await persistUploadedFiles(data.submissionFiles || [], {
+    folder: 'submissions',
+    localRoutePrefix: '/uploads/submissions',
+  });
 
   const updated = await projectModel.submitProject(projectId, submissionText, submissionLink, submissionFiles);
 

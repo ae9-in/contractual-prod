@@ -17,6 +17,7 @@ export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isLandingPage = location.pathname === '/';
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
@@ -184,11 +185,11 @@ export default function Navbar() {
       </button>
 
       <nav className={`top-nav${open ? ' top-nav-open' : ''}`}>
-        {!isAuthenticated && (
+        {(!isAuthenticated || isLandingPage) && (
           <NavLink className={cls} to="/" onClick={() => setOpen(false)}>Home</NavLink>
         )}
 
-        {isAuthenticated && roleLinks.map((item) => {
+        {isAuthenticated && !isLandingPage && roleLinks.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink key={item.to} className={cls} to={item.to} onClick={() => setOpen(false)}>
@@ -200,7 +201,7 @@ export default function Navbar() {
           );
         })}
 
-        {isAuthenticated && (
+        {isAuthenticated && !isLandingPage && (
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
             <Link
               to={user?.role === 'business' ? '/business/profile' : '/freelancer/profile'}
@@ -234,7 +235,7 @@ export default function Navbar() {
           </motion.div>
         )}
 
-        {isAuthenticated && (
+        {isAuthenticated && !isLandingPage && (
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link
               to={user?.role === 'business' ? '/business/notifications' : '/freelancer/notifications'}
@@ -263,7 +264,30 @@ export default function Navbar() {
           </div>
         )}
 
-        {isAuthenticated && (
+        {isAuthenticated && isLandingPage && (
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <Link
+              className="top-nav-link"
+              to={user?.role === 'business' ? '/business/dashboard' : '/freelancer/dashboard'}
+              onClick={() => setOpen(false)}
+              style={{ fontWeight: 700 }}
+            >
+              Dashboard
+            </Link>
+            <motion.button
+              className="btn btn-secondary top-logout"
+              onClick={onLogout}
+              whileHover={{ scale: 1.05, backgroundColor: '#fee2e2', color: '#dc2626', borderColor: '#fecaca' }}
+              whileTap={{ scale: 0.95 }}
+              style={{ display: 'flex', gap: '6px', alignItems: 'center' }}
+            >
+              <LogOut size={16} />
+              Logout
+            </motion.button>
+          </div>
+        )}
+
+        {isAuthenticated && !isLandingPage && (
           <motion.button
             className="btn btn-secondary top-logout"
             onClick={onLogout}
