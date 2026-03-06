@@ -3,7 +3,7 @@ const multer = require('multer');
 const ApiError = require('../utils/ApiError');
 
 function errorMiddleware(err, req, res, next) {
-  if (err instanceof ZodError) {
+  if (err && err.name === 'ZodError') {
     const first = err.issues?.[0];
     const field = first?.path?.length ? first.path.join('.') : 'request';
     const message = first?.message || 'Invalid input';
@@ -13,7 +13,7 @@ function errorMiddleware(err, req, res, next) {
     });
   }
 
-  if (err instanceof multer.MulterError) {
+  if (err && err.name === 'MulterError') {
     const msgMap = {
       LIMIT_FILE_SIZE: 'Each file must be 10MB or smaller',
       LIMIT_FILE_COUNT: 'You can upload up to 5 files only',
@@ -30,8 +30,17 @@ function errorMiddleware(err, req, res, next) {
     return res.status(err.statusCode).json({ error: err.message });
   }
 
-  console.error(err);
-  return res.status(500).json({ error: 'Internal server error' });
+  console.error('[Error Middleware Catch]', err);
+
+  // Try to surface DB connection issues clearly
+  if (err && (err.code === 'ECONNREFUSED' || err.code === 'ER_ACCESS_DENIED_ERROR' || err.code === 'ENOTFOUND')) {
+    return res.status(500).json({ error: 'Database connection failed. Please check your database credentials and connection status.' });
+  }
+
+  return res.status(500).json({
+    error: err?.message ? `Internal server error: ${err.message}` : 'Internal server error',
+    details: err?.code || 'Unknown'
+  });
 }
 
 module.exports = errorMiddleware;
