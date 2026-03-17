@@ -51,6 +51,7 @@ const profileSchema = z.object({
 async function getProfile(userId) {
   const user = await userModel.findById(userId);
   const fallbackContactEmail = user?.email || '';
+  const fallbackContactPhone = user?.contactPhone || '';
   const profile = await profileModel.getByUserId(userId);
   if (!profile) {
     return {
@@ -64,13 +65,14 @@ async function getProfile(userId) {
       organizationWebsite: '',
       organizationIndustry: '',
       contactEmail: fallbackContactEmail,
-      contactPhone: '',
+      contactPhone: fallbackContactPhone,
     };
   }
 
   return {
     ...profile,
     contactEmail: String(profile.contactEmail || '').trim() || fallbackContactEmail,
+    contactPhone: String(profile.contactPhone || '').trim() || fallbackContactPhone,
   };
 }
 

@@ -9,11 +9,17 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { getApiErrorMessage, getApiFieldErrors } from '../utils/validation';
 
+function getContactPhoneError(value) {
+  if (!value) return 'Contact phone is required.';
+  if (!/^\d{10}$/.test(value)) return 'Contact phone must be a valid 10-digit number.';
+  return '';
+}
+
 export default function RegisterPage() {
   const { register } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: 'freelancer' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', contactPhone: '', role: 'freelancer' });
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,6 +29,13 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     setFieldErrors({});
+
+    const contactPhoneError = getContactPhoneError(form.contactPhone);
+    if (contactPhoneError) {
+      setFieldErrors({ contactPhone: contactPhoneError });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await register(form);
@@ -94,23 +107,6 @@ export default function RegisterPage() {
             </div>
 
             <div style={{ display: 'grid', gap: '10px' }}>
-              <label className="label" htmlFor="phone" style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>Phone Number</label>
-              <div style={{ position: 'relative' }}>
-                <Phone size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#818cf8' }} />
-                <input
-                  id="phone"
-                  className="input"
-                  placeholder="e.g. +91 9876543210"
-                  style={{ paddingLeft: '52px' }}
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  disabled={isSubmitting}
-                />
-              </div>
-              {fieldErrors.phone && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.phone}</p>}
-            </div>
-
-            <div style={{ display: 'grid', gap: '10px' }}>
               <label className="label" htmlFor="reg-email" style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>Email Address</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#818cf8' }} />
@@ -143,6 +139,29 @@ export default function RegisterPage() {
                 />
               </div>
               {fieldErrors.password && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.password}</p>}
+            </div>
+
+            <div style={{ display: 'grid', gap: '10px' }}>
+              <label className="label" htmlFor="contactPhone" style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>Contact Phone</label>
+              <div style={{ position: 'relative' }}>
+                <Phone size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#818cf8' }} />
+                <input
+                  id="contactPhone"
+                  className="input"
+                  placeholder="9876543210"
+                  inputMode="numeric"
+                  maxLength={10}
+                  style={{ paddingLeft: '52px' }}
+                  value={form.contactPhone}
+                  onChange={(e) => {
+                    const nextValue = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm({ ...form, contactPhone: nextValue });
+                    setFieldErrors((prev) => ({ ...prev, contactPhone: getContactPhoneError(nextValue) }));
+                  }}
+                  disabled={isSubmitting}
+                />
+              </div>
+              {fieldErrors.contactPhone && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.contactPhone}</p>}
             </div>
 
             <div style={{ display: 'grid', gap: '10px' }}>

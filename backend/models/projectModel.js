@@ -84,8 +84,8 @@ async function findById(id, options = {}) {
       p.submission_text AS submissionText, p.submission_link AS submissionLink,
       p.submission_files AS submissionFiles, p.created_at AS createdAt, u.name AS businessName,
       fu.name AS freelancerName,
-      fp.contact_email AS freelancerContactEmail,
-      fp.contact_phone AS freelancerContactPhone
+      COALESCE(NULLIF(TRIM(fp.contact_email), ''), fu.email) AS freelancerContactEmail,
+      COALESCE(NULLIF(TRIM(fp.contact_phone), ''), fu.phone) AS freelancerContactPhone
       ${applicantSelect}
      FROM projects p
      INNER JOIN users u ON u.id = p.business_id
@@ -145,8 +145,8 @@ async function list({ status, minBudget, maxBudget, skill, freelancerId, viewerI
       p.submission_text AS submissionText, p.submission_link AS submissionLink,
       p.submission_files AS submissionFiles, p.created_at AS createdAt, u.name AS businessName,
       fu.name AS freelancerName,
-      fp.contact_email AS freelancerContactEmail,
-      fp.contact_phone AS freelancerContactPhone
+      COALESCE(NULLIF(TRIM(fp.contact_email), ''), fu.email) AS freelancerContactEmail,
+      COALESCE(NULLIF(TRIM(fp.contact_phone), ''), fu.phone) AS freelancerContactPhone
       ${applicantSelect}
      FROM projects p
      INNER JOIN users u ON u.id = p.business_id

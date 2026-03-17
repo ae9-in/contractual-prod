@@ -8,8 +8,8 @@ const ApiError = require('../utils/ApiError');
 const registerSchema = z.object({
   name: z.string().trim().min(2),
   email: z.string().trim().email().toLowerCase(),
-  phone: z.string().trim().min(10).optional().or(z.literal('')),
   password: z.string().min(8),
+  contactPhone: z.string().trim().regex(/^\d{10}$/, 'Contact phone must be a valid 10-digit number'),
   role: z.enum(['business', 'freelancer']),
 });
 
@@ -24,6 +24,11 @@ async function register(data) {
   const exists = await userModel.findByEmail(payload.email);
   if (exists) {
     throw new ApiError(409, 'Email already exists');
+  }
+
+  const existingPhone = await userModel.findByPhone(payload.contactPhone);
+  if (existingPhone) {
+    throw new ApiError(409, 'Contact phone already exists');
   }
 
   const passwordHash = await bcrypt.hash(payload.password, 10);
@@ -53,7 +58,7 @@ async function login(data) {
 
   return {
     token,
-    user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role },
+    user: { id: user.id, name: user.name, email: user.email, contactPhone: user.contactPhone, role: user.role },
   };
 }
 

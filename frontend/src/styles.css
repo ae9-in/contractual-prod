@@ -1473,12 +1473,15 @@ a {
 
 .toast {
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   color: #fff;
   font-size: 0.9rem;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
   animation: toast-in 240ms ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .toast-success {

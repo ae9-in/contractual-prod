@@ -523,14 +523,17 @@ export default function ProjectDetailPage() {
             {user?.role === 'business' && project.freelancerId && (project.freelancerContactEmail || project.freelancerContactPhone) && (
               <div style={{ marginTop: '24px', padding: '18px 20px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
                 <h4 style={{ margin: '0 0 10px', fontSize: '1rem', fontWeight: 900, color: '#0f172a' }}>Freelancer Contact Details</h4>
+                <p style={{ margin: '0 0 6px', color: '#334155', fontWeight: 700 }}>
+                  Full Name: <span style={{ color: '#0f172a' }}>{project.freelancerName || 'Unavailable'}</span>
+                </p>
                 {project.freelancerContactEmail && (
                   <p style={{ margin: '0 0 6px', color: '#334155', fontWeight: 700 }}>
-                    Email: <a href={`mailto:${project.freelancerContactEmail}`} style={{ color: '#4f46e5', textDecoration: 'none' }}>{project.freelancerContactEmail}</a>
+                    Email Address: <a href={`mailto:${project.freelancerContactEmail}`} style={{ color: '#4f46e5', textDecoration: 'none' }}>{project.freelancerContactEmail}</a>
                   </p>
                 )}
                 {project.freelancerContactPhone && (
                   <p style={{ margin: 0, color: '#334155', fontWeight: 700 }}>
-                    Phone: <a href={`tel:${project.freelancerContactPhone}`} style={{ color: '#4f46e5', textDecoration: 'none' }}>{project.freelancerContactPhone}</a>
+                    Contact Phone: <a href={`tel:${project.freelancerContactPhone}`} style={{ color: '#4f46e5', textDecoration: 'none' }}>{project.freelancerContactPhone}</a>
                   </p>
                 )}
               </div>
@@ -811,14 +814,17 @@ export default function ProjectDetailPage() {
                     {(app.contactEmail || app.contactPhone || app.freelancerEmail) && (
                       <div style={{ padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', display: 'grid', gap: '4px' }}>
                         <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Contact</p>
+                        <p style={{ margin: 0, fontSize: '0.86rem', color: '#334155', fontWeight: 700 }}>
+                          Full Name: {app.freelancerName}
+                        </p>
                         {(app.contactEmail || app.freelancerEmail) && (
                           <p style={{ margin: 0, fontSize: '0.86rem', color: '#334155', fontWeight: 700 }}>
-                            Email: {app.contactEmail || app.freelancerEmail}
+                            Email Address: {app.contactEmail || app.freelancerEmail}
                           </p>
                         )}
                         {app.contactPhone && (
                           <p style={{ margin: 0, fontSize: '0.86rem', color: '#334155', fontWeight: 700 }}>
-                            Phone: {app.contactPhone}
+                            Contact Phone: {app.contactPhone}
                           </p>
                         )}
                       </div>
