@@ -39,9 +39,9 @@ export default function RegisterPage() {
         type: 'success',
         title: 'Registration Successful',
         message: 'Welcome aboard! Your account has been created successfully. Login now to explore your gigs.',
-        duration: 4200,
+        duration: 5200,
       });
-      setTimeout(() => navigate('/login'), 900);
+      setTimeout(() => navigate('/login'), 2200);
     } catch (err) {
       setFieldErrors(getApiFieldErrors(err));
       setError(getApiErrorMessage(err, 'Registration failed'));
@@ -125,6 +125,24 @@ export default function RegisterPage() {
             </div>
 
             <div style={{ display: 'grid', gap: '10px' }}>
+              <label className="label" htmlFor="reg-password" style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>Password</label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#818cf8' }} />
+                <input
+                  id="reg-password"
+                  className="input"
+                  placeholder="At least 8 characters"
+                  type="password"
+                  style={{ paddingLeft: '52px' }}
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  disabled={isSubmitting}
+                />
+              </div>
+              {fieldErrors.password && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.password}</p>}
+            </div>
+
+            <div style={{ display: 'grid', gap: '10px' }}>
               <label className="label" htmlFor="contactPhone" style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>Contact Phone</label>
               <div style={{ position: 'relative' }}>
                 <Phone size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#818cf8' }} />
@@ -145,24 +163,6 @@ export default function RegisterPage() {
                 />
               </div>
               {fieldErrors.contactPhone && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.contactPhone}</p>}
-            </div>
-
-            <div style={{ display: 'grid', gap: '10px' }}>
-              <label className="label" htmlFor="reg-password" style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>Password</label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#818cf8' }} />
-                <input
-                  id="reg-password"
-                  className="input"
-                  placeholder="At least 8 characters"
-                  type="password"
-                  style={{ paddingLeft: '52px' }}
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  disabled={isSubmitting}
-                />
-              </div>
-              {fieldErrors.password && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.password}</p>}
             </div>
 
             <div style={{ display: 'grid', gap: '10px' }}>
