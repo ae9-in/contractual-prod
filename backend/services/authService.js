@@ -32,7 +32,7 @@ async function register(data) {
   }
 
   const passwordHash = await bcrypt.hash(payload.password, 10);
-  const user = await userModel.create({ ...payload, passwordHash, phone: payload.contactPhone });
+  const user = await userModel.create({ ...payload, passwordHash, contactPhone: payload.contactPhone });
 
   return user;
 }

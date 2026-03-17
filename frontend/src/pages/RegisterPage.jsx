@@ -38,7 +38,7 @@ export default function RegisterPage() {
       addToast({
         type: 'success',
         title: 'Registration Successful',
-        message: 'Your account has been created successfully. Please login to explore your gigs.',
+        message: 'Welcome aboard! Your account has been created successfully. Login now to explore your gigs.',
         duration: 4200,
       });
       setTimeout(() => navigate('/login'), 900);
