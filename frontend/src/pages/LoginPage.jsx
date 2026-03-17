@@ -27,7 +27,7 @@ export default function LoginPage() {
       await login(form);
       const rawUser = getStoredUserRaw();
       const user = rawUser ? JSON.parse(rawUser) : {};
-      addToast('Welcome back to Contractual', 'success');
+      addToast(`Welcome back, ${user.name}! Great to see you again.`, 'success');
       navigate(user.role === 'business' ? '/business/dashboard' : '/freelancer/dashboard');
     } catch (err) {
       setFieldErrors(getApiFieldErrors(err));
@@ -66,7 +66,7 @@ export default function LoginPage() {
         transition={{ duration: 0.4, ease: 'easeOut' }}
         style={{ width: '100%', maxWidth: '460px', position: 'relative', zIndex: 10 }}
       >
-        <Card style={{ padding: '52px', border: '1px solid rgba(59,130,246,0.15)', background: 'rgba(255,255,255,0.95)', boxShadow: '0 32px 80px rgba(59,130,246,0.1)', borderRadius: '32px' }}>
+        <Card style={{ padding: 'clamp(24px, 10vw, 52px)', border: '1px solid rgba(59,130,246,0.15)', background: 'rgba(255,255,255,0.95)', boxShadow: '0 32px 80px rgba(59,130,246,0.1)', borderRadius: '32px' }}>
           <div style={{ textAlign: 'center', marginBottom: '36px' }}>
             <motion.div
               whileHover={{ rotate: 10, scale: 1.1 }}

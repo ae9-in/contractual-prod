@@ -32,7 +32,7 @@ export default function Footer() {
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 clamp(20px, 5vw, 60px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '60px', marginBottom: '60px', position: 'relative', zIndex: 2 }}>
 
         {/* Brand Column */}
-        <div style={{ gridColumn: 'span 2' }}>
+        <div className="footer-brand-col" style={{ gridColumn: 'span 1' }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
             <motion.div
               whileHover={{ rotate: 180, scale: 1.1 }}

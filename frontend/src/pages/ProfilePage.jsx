@@ -201,7 +201,7 @@ export default function ProfilePage() {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      style={{ display: 'flex', flexDirection: 'column', gap: '28px', padding: '32px clamp(20px, 4vw, 48px)', maxWidth: '900px', margin: '0 auto', width: '100%' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: 'clamp(16px, 4vw, 32px) clamp(12px, 3vw, 24px)', maxWidth: '900px', margin: '0 auto', width: '100%' }}
     >
       {/* Header */}
       <motion.div variants={itemVariants} style={{
@@ -247,9 +247,17 @@ export default function ProfilePage() {
           <h1 className="profile-hero-name" style={{ margin: '0 0 6px', fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', fontWeight: 900, fontFamily: '"Outfit", sans-serif', letterSpacing: '-0.03em', color: '#fff', WebkitTextFillColor: '#fff', textShadow: '0 1px 10px rgba(0,0,0,0.25)' }}>
             {user?.name || 'User'}
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
-            <Mail size={15} />
-            <span>{user?.email}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
+              <Mail size={15} />
+              <span>{user?.email}</span>
+            </div>
+            {user?.phone && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
+                <Phone size={15} />
+                <span>{user.phone}</span>
+              </div>
+            )}
           </div>
         </div>
         {ratingSummary.totalRatings > 0 && (
@@ -279,7 +287,7 @@ export default function ProfilePage() {
       </motion.div>
 
       {/* Edit Profile Form */}
-      <motion.div variants={itemVariants} style={{ background: '#fff', borderRadius: '28px', padding: '36px', border: '1px solid rgba(99,102,241,0.1)', boxShadow: '0 4px 24px rgba(15,23,42,0.04)' }}>
+      <motion.div variants={itemVariants} style={{ background: '#fff', borderRadius: '28px', padding: 'clamp(20px, 5vw, 36px)', border: '1px solid rgba(99,102,241,0.1)', boxShadow: '0 4px 24px rgba(15,23,42,0.04)', width: '100%', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
           <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'rgba(59,130,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Edit3 size={20} color="#3b82f6" />

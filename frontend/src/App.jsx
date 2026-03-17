@@ -9,9 +9,9 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import RoleRoute from './routes/RoleRoute';
 import { useAuth } from './hooks/useAuth';
 
-const HomePage = lazy(() => import('./pages/HomePage'));
-const LoginPage = lazy(() => import('./pages/LoginPage'));
-const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 const BusinessDashboardPage = lazy(() => import('./pages/BusinessDashboardPage'));
 const PostProjectPage = lazy(() => import('./pages/PostProjectPage'));
 const FreelancerDashboardPage = lazy(() => import('./pages/FreelancerDashboardPage'));
@@ -31,10 +31,9 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
         style={{ width: '100%' }}
       >
         <Suspense fallback={<Loader label="Loading page..." />}>

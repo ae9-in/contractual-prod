@@ -8,6 +8,7 @@ import { getProfile } from '../../services/profileService';
 import { connectRealtime, onRealtime } from '../../services/realtimeService';
 import { getStoredToken } from '../../utils/authStorage';
 import brandLogo from '../../assets/contractual-logo-exact.png';
+import Button from '../ui/Button';
 
 function cls({ isActive }) {
   return `top-nav-link${isActive ? ' top-nav-link-active' : ''}`;
@@ -184,7 +185,99 @@ export default function Navbar() {
         {open ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      <nav className={`top-nav${open ? ' top-nav-open' : ''}`}>
+      <AnimatePresence>
+        {open && (
+          <motion.nav
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="top-nav-mobile"
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              background: '#fff',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '20px 24px 32px',
+              gap: '8px',
+              boxShadow: '0 20px 40px rgba(15,23,42,0.1)',
+              borderBottom: '1px solid #f1f5f9',
+              zIndex: 1000,
+              overflow: 'hidden'
+            }}
+          >
+            {(!isAuthenticated || isLandingPage) && (
+              <NavLink className={cls} to="/" onClick={() => setOpen(false)}>Home</NavLink>
+            )}
+
+            {isAuthenticated && !isLandingPage && roleLinks.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink key={item.to} className={cls} to={item.to} onClick={() => setOpen(false)}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Icon size={18} />
+                    {item.label}
+                  </span>
+                </NavLink>
+              );
+            })}
+
+            <div style={{ height: '1px', background: '#f1f5f9', margin: '8px 0' }} />
+
+            {isAuthenticated && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
+                <Link
+                  to={user?.role === 'business' ? '/business/profile' : '/freelancer/profile'}
+                  onClick={() => setOpen(false)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none', color: '#0f172a' }}
+                >
+                  <div style={{ width: '40px', height: '40px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#f8fafc' }}>
+                    {profilePhotoUrl ? (
+                      <img src={buildProtectedAssetUrl(profilePhotoUrl)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ fontWeight: 800 }}>{user?.name?.charAt(0)?.toUpperCase()}</span>
+                    )}
+                  </div>
+                  <span style={{ fontWeight: 700 }}>Profile Settings</span>
+                </Link>
+                <Link
+                  to={user?.role === 'business' ? '/business/notifications' : '/freelancer/notifications'}
+                  onClick={() => setOpen(false)}
+                  className="notif-bell"
+                  style={{ position: 'relative' }}
+                >
+                  <Bell size={24} color="#64748b" />
+                  {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+                </Link>
+              </div>
+            )}
+
+            {!isAuthenticated ? (
+              <div style={{ display: 'grid', gap: '12px', marginTop: '8px' }}>
+                <Link to="/login" onClick={() => setOpen(false)} style={{ textDecoration: 'none' }}>
+                  <Button variant="secondary" fullWidth style={{ height: '52px' }}>Login</Button>
+                </Link>
+                <Link to="/register" onClick={() => setOpen(false)} style={{ textDecoration: 'none' }}>
+                  <Button variant="primary" fullWidth style={{ height: '52px' }}>Get Started</Button>
+                </Link>
+              </div>
+            ) : (
+              <Button
+                variant="secondary"
+                onClick={onLogout}
+                fullWidth
+                style={{ marginTop: '12px', height: '52px', color: '#dc2626', borderColor: '#fecaca', background: '#fff' }}
+              >
+                Logout Account
+              </Button>
+            )}
+          </motion.nav>
+        )}
+      </AnimatePresence>
+
+      <nav className="top-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         {(!isAuthenticated || isLandingPage) && (
           <NavLink className={cls} to="/" onClick={() => setOpen(false)}>Home</NavLink>
         )}
@@ -202,102 +295,45 @@ export default function Navbar() {
         })}
 
         {isAuthenticated && !isLandingPage && (
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-            <Link
-              to={user?.role === 'business' ? '/business/profile' : '/freelancer/profile'}
-              onClick={() => setOpen(false)}
-              aria-label="Profile"
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                border: '1px solid rgba(99,102,241,0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                background: '#f8fafc',
-                textDecoration: 'none',
-                color: '#1e293b',
-                fontWeight: 800,
-              }}
-            >
-              {profilePhotoUrl ? (
-                <img
-                  src={buildProtectedAssetUrl(profilePhotoUrl)}
-                  alt={`${user?.name || 'User'} avatar`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <span>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
-              )}
-            </Link>
-          </motion.div>
-        )}
-
-        {isAuthenticated && !isLandingPage && (
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Link
               to={user?.role === 'business' ? '/business/notifications' : '/freelancer/notifications'}
               className="notif-bell"
-              onClick={() => setOpen(false)}
               aria-label="Notifications"
             >
               <Bell size={18} className="notif-bell-icon" />
               {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
             </Link>
-          </motion.div>
+            <Link
+              to={user?.role === 'business' ? '/business/profile' : '/freelancer/profile'}
+              style={{ width: '40px', height: '40px', borderRadius: '12px', border: '1px solid rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#f8fafc', color: '#1e293b' }}
+            >
+              {profilePhotoUrl ? (
+                <img src={buildProtectedAssetUrl(profilePhotoUrl)} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ fontWeight: 800 }}>{user?.name?.charAt(0)?.toUpperCase()}</span>
+              )}
+            </Link>
+          </div>
         )}
 
         {!isAuthenticated && (
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <Link className="top-nav-link" to="/login" onClick={() => setOpen(false)} style={{ fontWeight: 600 }}>Login</Link>
-            <Link to="/register" onClick={() => setOpen(false)}>
-              <motion.button
-                className="btn btn-primary"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Get Started <ChevronRight size={16} />
-              </motion.button>
+            <Link className="top-nav-link" to="/login" style={{ fontWeight: 600 }}>Login</Link>
+            <Link to="/register">
+              <Button variant="primary" style={{ padding: '0 20px', height: '44px' }}>Get Started</Button>
             </Link>
           </div>
         )}
 
-        {isAuthenticated && isLandingPage && (
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <Link
-              className="top-nav-link"
-              to={user?.role === 'business' ? '/business/dashboard' : '/freelancer/dashboard'}
-              onClick={() => setOpen(false)}
-              style={{ fontWeight: 700 }}
-            >
-              Dashboard
-            </Link>
-            <motion.button
-              className="btn btn-secondary top-logout"
-              onClick={onLogout}
-              whileHover={{ scale: 1.05, backgroundColor: '#fee2e2', color: '#dc2626', borderColor: '#fecaca' }}
-              whileTap={{ scale: 0.95 }}
-              style={{ display: 'flex', gap: '6px', alignItems: 'center' }}
-            >
-              <LogOut size={16} />
-              Logout
-            </motion.button>
-          </div>
-        )}
-
-        {isAuthenticated && !isLandingPage && (
-          <motion.button
-            className="btn btn-secondary top-logout"
+        {isAuthenticated && (
+          <Button
+            variant="secondary"
             onClick={onLogout}
-            whileHover={{ scale: 1.05, backgroundColor: '#fee2e2', color: '#dc2626', borderColor: '#fecaca' }}
-            whileTap={{ scale: 0.95 }}
-            style={{ display: 'flex', gap: '6px', alignItems: 'center' }}
+            style={{ display: 'flex', gap: '6px', alignItems: 'center', height: '44px' }}
           >
-            <LogOut size={16} />
-            Logout
-          </motion.button>
+            <LogOut size={16} /> Logout
+          </Button>
         )}
       </nav>
     </motion.header>

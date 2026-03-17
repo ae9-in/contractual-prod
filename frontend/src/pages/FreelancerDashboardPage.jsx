@@ -24,6 +24,7 @@ import EmptyState from '../components/ui/EmptyState';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import PremiumHero from '../components/ui/PremiumHero';
+import Modal from '../components/ui/Modal';
 import { formatINR } from '../utils/currency';
 
 function MetricCard({ label, value, onClick, delay = 0 }) {
@@ -85,6 +86,14 @@ export default function FreelancerDashboardPage() {
   const [submittingProjectId, setSubmittingProjectId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem('show_welcome_modal') === 'true') {
+      setShowWelcome(true);
+      localStorage.removeItem('show_welcome_modal');
+    }
+  }, []);
 
   const loadProjects = async () => {
     try {
@@ -177,12 +186,17 @@ export default function FreelancerDashboardPage() {
   };
 
   return (
-    <section className="premium-page-wrap" style={{ display: 'grid', gap: '20px', background: 'transparent' }}>
+    <section className="premium-page-wrap" style={{ display: 'grid', gap: 'clamp(12px, 2vw, 20px)', background: 'transparent', padding: '0 0 40px' }}>
 
       <PremiumHero
         label="Freelancer Account"
         title={user?.name || 'Freelancer'}
-        subtitle={user?.email || 'Track your projects and submissions'}
+        subtitle={
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span>{user?.email}</span>
+            {user?.phone && <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>{user.phone}</span>}
+          </div>
+        }
         right={(
           <div style={{ minWidth: '220px', border: '1px solid rgba(148,163,184,0.22)', background: 'rgba(15,23,42,0.2)', borderRadius: '16px', padding: '12px 14px' }}>
             <p style={{ margin: 0, color: 'rgba(226,232,240,0.72)', fontSize: '0.76rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
@@ -355,6 +369,44 @@ export default function FreelancerDashboardPage() {
       </div>
 
       {error && <p className="alert alert-danger">{error}</p>}
+
+      <Modal
+        isOpen={showWelcome}
+        onClose={() => setShowWelcome(false)}
+        title="Welcome Aboard!"
+      >
+        <div style={{ textAlign: 'center', padding: '10px 0' }}>
+          <div style={{ 
+            width: '64px', 
+            height: '64px', 
+            background: 'linear-gradient(135deg, #f0fdf4 0%, #dbfce1 100%)', 
+            borderRadius: '20px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            margin: '0 auto 20px',
+            color: '#16a34a',
+            boxShadow: '0 10px 20px rgba(22, 163, 74, 0.1)'
+          }}>
+            <Sparkles size={32} />
+          </div>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a', marginBottom: '12px', fontFamily: '"Outfit", sans-serif' }}>
+            Registration Successful
+          </h2>
+          <p style={{ color: '#475569', marginBottom: '32px', fontSize: '1.1rem', lineHeight: 1.6 }}>
+            Welcome aboard, <strong>{user?.name}</strong>!<br /> 
+            Your account has been created successfully. Start exploring gigs and building your portfolio today.
+          </p>
+          <Button 
+            variant="primary" 
+            fullWidth 
+            onClick={() => setShowWelcome(false)}
+            style={{ height: '56px', fontSize: '1.1rem', fontWeight: 800, borderRadius: '16px' }}
+          >
+            Get Started
+          </Button>
+        </div>
+      </Modal>
     </section>
   );
 }

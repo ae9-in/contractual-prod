@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserPlus, Mail, Lock, User, UserCircle } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, UserCircle, Phone } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
 import { getApiErrorMessage, getApiFieldErrors } from '../utils/validation';
 
 export default function RegisterPage() {
   const { register } = useAuth();
+  const { addToast } = useToast();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'freelancer' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: 'freelancer' });
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +26,8 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     try {
       await register(form);
-      navigate('/login');
+      localStorage.setItem('show_welcome_modal', 'true');
+      setShowSuccessModal(true);
     } catch (err) {
       setFieldErrors(getApiFieldErrors(err));
       setError(getApiErrorMessage(err, 'Registration failed'));
@@ -86,6 +91,23 @@ export default function RegisterPage() {
                 />
               </div>
               {fieldErrors.name && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.name}</p>}
+            </div>
+
+            <div style={{ display: 'grid', gap: '10px' }}>
+              <label className="label" htmlFor="phone" style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>Phone Number</label>
+              <div style={{ position: 'relative' }}>
+                <Phone size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#818cf8' }} />
+                <input
+                  id="phone"
+                  className="input"
+                  placeholder="e.g. +91 9876543210"
+                  style={{ paddingLeft: '52px' }}
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  disabled={isSubmitting}
+                />
+              </div>
+              {fieldErrors.phone && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.phone}</p>}
             </div>
 
             <div style={{ display: 'grid', gap: '10px' }}>
@@ -154,6 +176,42 @@ export default function RegisterPage() {
           </div>
         </Card>
       </motion.div>
+
+      <Modal
+        isOpen={showSuccessModal}
+        onClose={() => navigate('/login')}
+        title="Registration Successful"
+      >
+        <div style={{ textAlign: 'center', padding: '10px 0' }}>
+          <div style={{ 
+            width: '64px', 
+            height: '64px', 
+            background: '#f0fdf4', 
+            borderRadius: '50%', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            margin: '0 auto 20px',
+            color: '#16a34a'
+          }}>
+            <UserPlus size={32} />
+          </div>
+          <p style={{ fontSize: '1.2rem', fontWeight: 600, color: '#0f172a', marginBottom: '12px' }}>
+            Welcome aboard!
+          </p>
+          <p style={{ color: '#64748b', marginBottom: '32px', fontSize: '1rem' }}>
+            Your account has been created successfully. Login now to explore your gigs.
+          </p>
+          <Button 
+            variant="primary" 
+            fullWidth 
+            onClick={() => navigate('/login')}
+            style={{ height: '54px', fontSize: '1.1rem', fontWeight: 700 }}
+          >
+            Login Now
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

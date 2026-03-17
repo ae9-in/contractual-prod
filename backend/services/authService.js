@@ -8,6 +8,7 @@ const ApiError = require('../utils/ApiError');
 const registerSchema = z.object({
   name: z.string().trim().min(2),
   email: z.string().trim().email().toLowerCase(),
+  phone: z.string().trim().min(10).optional().or(z.literal('')),
   password: z.string().min(8),
   role: z.enum(['business', 'freelancer']),
 });
@@ -52,7 +53,7 @@ async function login(data) {
 
   return {
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role },
   };
 }
 
