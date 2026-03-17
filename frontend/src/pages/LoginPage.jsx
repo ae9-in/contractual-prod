@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock, ArrowRight } from 'lucide-react';
+import { LogIn, Mail, Lock, ArrowRight, Phone } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import Card from '../components/ui/Card';
@@ -9,11 +9,17 @@ import Button from '../components/ui/Button';
 import { getApiErrorMessage, getApiFieldErrors } from '../utils/validation';
 import { getStoredUserRaw } from '../utils/authStorage';
 
+function getContactPhoneError(value) {
+  if (!value) return '';
+  if (!/^\d{10}$/.test(value)) return 'Contact phone must be a valid 10-digit number.';
+  return '';
+}
+
 export default function LoginPage() {
   const { login } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '', contactPhone: '' });
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,9 +28,14 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setFieldErrors({});
+    const contactPhoneError = getContactPhoneError(form.contactPhone);
+    if (contactPhoneError) {
+      setFieldErrors({ contactPhone: contactPhoneError });
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await login(form);
+      await login({ email: form.email, password: form.password });
       const rawUser = getStoredUserRaw();
       const user = rawUser ? JSON.parse(rawUser) : {};
       addToast('Welcome back to Contractual', 'success');
@@ -94,6 +105,29 @@ export default function LoginPage() {
                 />
               </div>
               {fieldErrors.email && <p style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 600, margin: 0 }}>{fieldErrors.email}</p>}
+            </div>
+
+            <div style={{ display: 'grid', gap: '8px' }}>
+              <label htmlFor="contactPhone" style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e293b' }}>Contact Phone</label>
+              <div style={{ position: 'relative' }}>
+                <Phone size={17} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#818cf8', pointerEvents: 'none' }} />
+                <input
+                  id="contactPhone"
+                  className="input"
+                  placeholder="9876543210"
+                  inputMode="numeric"
+                  maxLength={10}
+                  style={{ paddingLeft: '48px', height: '52px', borderRadius: '14px' }}
+                  value={form.contactPhone}
+                  onChange={(e) => {
+                    const nextValue = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm({ ...form, contactPhone: nextValue });
+                    setFieldErrors((prev) => ({ ...prev, contactPhone: getContactPhoneError(nextValue) }));
+                  }}
+                  disabled={isSubmitting}
+                />
+              </div>
+              {fieldErrors.contactPhone && <p style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 600, margin: 0 }}>{fieldErrors.contactPhone}</p>}
             </div>
 
             <div style={{ display: 'grid', gap: '8px' }}>

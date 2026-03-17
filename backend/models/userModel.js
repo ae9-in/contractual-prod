@@ -2,30 +2,39 @@ const pool = require('../config/db');
 
 async function findByEmail(email) {
   const [rows] = await pool.execute(
-    'SELECT id, name, email, password_hash AS passwordHash, role, created_at AS createdAt FROM users WHERE email = ? LIMIT 1',
+    'SELECT id, name, email, phone, password_hash AS passwordHash, role, created_at AS createdAt FROM users WHERE email = ? LIMIT 1',
     [email],
+  );
+  return rows[0] || null;
+}
+
+async function findByPhone(phone) {
+  const [rows] = await pool.execute(
+    'SELECT id, name, email, phone, role, created_at AS createdAt FROM users WHERE phone = ? LIMIT 1',
+    [phone],
   );
   return rows[0] || null;
 }
 
 async function findById(id) {
   const [rows] = await pool.execute(
-    'SELECT id, name, email, role, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
+    'SELECT id, name, email, phone, role, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
     [id],
   );
   return rows[0] || null;
 }
 
-async function create({ name, email, passwordHash, role }) {
+async function create({ name, email, phone, passwordHash, role }) {
   const [result] = await pool.execute(
-    'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',
-    [name, email, passwordHash, role],
+    'INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+    [name, email, phone, passwordHash, role],
   );
   return findById(result.insertId);
 }
 
 module.exports = {
   findByEmail,
+  findByPhone,
   findById,
   create,
 };

@@ -1,16 +1,24 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserPlus, Mail, Lock, User, UserCircle } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, UserCircle, Phone } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { getApiErrorMessage, getApiFieldErrors } from '../utils/validation';
 
+function getContactPhoneError(value) {
+  if (!value) return 'Contact phone is required.';
+  if (!/^\d{10}$/.test(value)) return 'Contact phone must be a valid 10-digit number.';
+  return '';
+}
+
 export default function RegisterPage() {
   const { register } = useAuth();
+  const { addToast } = useToast();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'freelancer' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', contactPhone: '', role: 'freelancer' });
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,10 +27,21 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     setFieldErrors({});
+    const contactPhoneError = getContactPhoneError(form.contactPhone);
+    if (contactPhoneError) {
+      setFieldErrors({ contactPhone: contactPhoneError });
+      return;
+    }
     setIsSubmitting(true);
     try {
       await register(form);
-      navigate('/login');
+      addToast({
+        type: 'success',
+        title: 'Registration Successful',
+        message: 'Your account has been created successfully. Please login to explore your gigs.',
+        duration: 4200,
+      });
+      setTimeout(() => navigate('/login'), 900);
     } catch (err) {
       setFieldErrors(getApiFieldErrors(err));
       setError(getApiErrorMessage(err, 'Registration failed'));
@@ -103,6 +122,29 @@ export default function RegisterPage() {
                 />
               </div>
               {fieldErrors.email && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.email}</p>}
+            </div>
+
+            <div style={{ display: 'grid', gap: '10px' }}>
+              <label className="label" htmlFor="contactPhone" style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>Contact Phone</label>
+              <div style={{ position: 'relative' }}>
+                <Phone size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: '#818cf8' }} />
+                <input
+                  id="contactPhone"
+                  className="input"
+                  placeholder="9876543210"
+                  inputMode="numeric"
+                  maxLength={10}
+                  style={{ paddingLeft: '52px' }}
+                  value={form.contactPhone}
+                  onChange={(e) => {
+                    const nextValue = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm({ ...form, contactPhone: nextValue });
+                    setFieldErrors((prev) => ({ ...prev, contactPhone: getContactPhoneError(nextValue) }));
+                  }}
+                  disabled={isSubmitting}
+                />
+              </div>
+              {fieldErrors.contactPhone && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.contactPhone}</p>}
             </div>
 
             <div style={{ display: 'grid', gap: '10px' }}>

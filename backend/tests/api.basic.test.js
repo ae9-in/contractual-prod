@@ -17,6 +17,19 @@ test('POST /api/auth/register returns field-level validation details for bad pay
   assert.ok(res.body.details.length > 0, 'details should not be empty');
 });
 
+test('POST /api/auth/register validates contact phone format', async () => {
+  const res = await request(app).post('/api/auth/register').send({
+    name: 'Test User',
+    email: 'test@example.com',
+    password: 'password123',
+    contactPhone: '98abc',
+    role: 'freelancer',
+  });
+  assert.equal(res.status, 400);
+  assert.match(String(res.body.error || ''), /contactPhone/i);
+  assert.ok(Array.isArray(res.body.details), 'details should be array');
+});
+
 test('POST /api/auth/login returns validation error for invalid email/password', async () => {
   const res = await request(app).post('/api/auth/login').send({ email: 'bad', password: '123' });
   assert.equal(res.status, 400);
