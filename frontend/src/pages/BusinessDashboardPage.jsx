@@ -146,7 +146,7 @@ export default function BusinessDashboardPage() {
         subtitle={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <span>{user?.email}</span>
-            {user?.phone && <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>{user.phone}</span>}
+            {user?.contactPhone && <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>{user.contactPhone}</span>}
           </div>
         }
         right={(

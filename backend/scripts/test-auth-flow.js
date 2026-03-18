@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { makeRegisterPayload } = require('./testData');
 
 async function testAuthFlow() {
     const email = `user_${Date.now()}@example.com`;
@@ -7,12 +8,12 @@ async function testAuthFlow() {
     try {
         // 1. Register
         console.log('Registering...');
-        const regRes = await axios.post('http://localhost:5000/api/auth/register', {
+        const regRes = await axios.post('http://localhost:5000/api/auth/register', makeRegisterPayload({
             name: 'New User',
             email: email,
             password: password,
-            role: 'freelancer'
-        });
+            role: 'freelancer',
+        }));
         console.log('Registration Success (201)');
 
         // 2. Login

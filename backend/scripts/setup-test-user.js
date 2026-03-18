@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { makeRegisterPayload } = require('./testData');
 
 async function createStaticUser() {
     const email = 'testuser@example.com';
@@ -6,12 +7,13 @@ async function createStaticUser() {
 
     try {
         console.log('Creating user: testuser@example.com / Password@123');
-        await axios.post('http://localhost:5000/api/auth/register', {
+        await axios.post('http://localhost:5000/api/auth/register', makeRegisterPayload({
             name: 'Test Account',
             email: email,
             password: password,
-            role: 'freelancer'
-        });
+            role: 'freelancer',
+            seed: 101,
+        }));
         console.log('User created successfully!');
     } catch (err) {
         if (err.response?.status === 409) {

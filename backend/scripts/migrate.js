@@ -5,10 +5,85 @@ const pool = require('../config/db');
 const migrationsDir = path.join(__dirname, '..', 'sql', 'migrations');
 
 function splitStatements(sql) {
-  return sql
-    .split(/;\s*\r?\n/g)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const statements = [];
+  let current = '';
+  let inSingle = false;
+  let inDouble = false;
+  let inBacktick = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < sql.length; i += 1) {
+    const char = sql[i];
+    const next = sql[i + 1];
+
+    if (inLineComment) {
+      current += char;
+      if (char === '\n') inLineComment = false;
+      continue;
+    }
+
+    if (inBlockComment) {
+      current += char;
+      if (char === '*' && next === '/') {
+        current += next;
+        i += 1;
+        inBlockComment = false;
+      }
+      continue;
+    }
+
+    if (!inSingle && !inDouble && !inBacktick) {
+      if (char === '-' && next === '-') {
+        inLineComment = true;
+        current += char;
+        continue;
+      }
+      if (char === '#') {
+        inLineComment = true;
+        current += char;
+        continue;
+      }
+      if (char === '/' && next === '*') {
+        inBlockComment = true;
+        current += char;
+        continue;
+      }
+    }
+
+    if (char === '\'' && !inDouble && !inBacktick) {
+      const escaped = sql[i - 1] === '\\';
+      if (!escaped) inSingle = !inSingle;
+      current += char;
+      continue;
+    }
+
+    if (char === '"' && !inSingle && !inBacktick) {
+      const escaped = sql[i - 1] === '\\';
+      if (!escaped) inDouble = !inDouble;
+      current += char;
+      continue;
+    }
+
+    if (char === '`' && !inSingle && !inDouble) {
+      inBacktick = !inBacktick;
+      current += char;
+      continue;
+    }
+
+    if (char === ';' && !inSingle && !inDouble && !inBacktick) {
+      const statement = current.trim();
+      if (statement) statements.push(statement);
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  const trailing = current.trim();
+  if (trailing) statements.push(trailing);
+  return statements;
 }
 
 async function run() {

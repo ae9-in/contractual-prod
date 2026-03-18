@@ -12,6 +12,7 @@ const requiredRoutes = [
   '/business/dashboard',
   '/business/post-project',
   '/business/projects',
+  '/business/profile',
   '/business/notifications',
   '/freelancer/dashboard',
   '/freelancer/projects',

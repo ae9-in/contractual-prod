@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   acceptProjectApplication,
@@ -103,6 +103,26 @@ export default function ProjectDetailPage() {
   );
   const canAddTip = Boolean(user?.role === 'business' && payment && payment.status !== 'Unfunded');
   const apiOrigin = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const ratingSummary = useMemo(() => {
+    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    let total = 0;
+    let sum = 0;
+
+    for (const item of ratings) {
+      const value = Number(item?.rating || 0);
+      if (!distribution[value]) continue;
+      distribution[value] += 1;
+      total += 1;
+      sum += value;
+    }
+
+    return {
+      userId: project?.freelancerId || null,
+      totalRatings: total,
+      averageRating: total ? Number((sum / total).toFixed(2)) : 0,
+      distribution,
+    };
+  }, [ratings, project?.freelancerId]);
 
   const buildProtectedFileUrl = (relativePath) => {
     const token = getStoredToken();
@@ -554,7 +574,7 @@ export default function ProjectDetailPage() {
                   <div className="stack" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                     {(project.referenceFiles || []).map((file) => (
                       <a key={file.url} href={buildProtectedFileUrl(file.url)} target="_blank" rel="noreferrer" style={{ padding: '8px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#4f46e5', fontWeight: 600, textDecoration: 'none', fontSize: '0.9rem' }}>
-                        {file.name}
+                        {file.originalName || file.name || 'Attachment'}
                       </a>
                     ))}
                   </div>
@@ -593,7 +613,7 @@ export default function ProjectDetailPage() {
                           fontSize: '0.86rem',
                         }}
                       >
-                        {file.name}
+                        {file.originalName || file.name || 'Attachment'}
                       </a>
                     ))}
                   </div>
@@ -639,6 +659,11 @@ export default function ProjectDetailPage() {
                 {submissionFiles.length > 0 && (
                   <p style={{ margin: '8px 0 0', color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>
                     {submissionFiles.length} file{submissionFiles.length > 1 ? 's' : ''} selected
+                  </p>
+                )}
+                {!!Object.keys(submissionFieldErrors).length && (
+                  <p style={{ margin: '8px 0 0', color: '#b91c1c', fontSize: '0.85rem', fontWeight: 700 }}>
+                    {Object.values(submissionFieldErrors)[0]}
                   </p>
                 )}
                 <Button variant="primary" onClick={onSubmit} disabled={isActing} loading={isActing} style={{ marginTop: '30px', height: '60px', borderRadius: '16px', fontWeight: 900 }}>Finalize Submission</Button>
@@ -772,6 +797,11 @@ export default function ProjectDetailPage() {
                   <div ref={chatEndRef} />
                 </div>
 
+                {!!Object.keys(typingUsers).length && (
+                  <p style={{ margin: '0 0 10px', color: '#64748b', fontSize: '0.82rem', fontWeight: 700 }}>
+                    {Object.values(typingUsers).join(', ')} typing...
+                  </p>
+                )}
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <input
                     className="input"
@@ -785,15 +815,89 @@ export default function ProjectDetailPage() {
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                   </Button>
                 </div>
+                {chatError && <p style={{ margin: '10px 0 0', color: '#b91c1c', fontSize: '0.85rem', fontWeight: 700 }}>{chatError}</p>}
               </div>
             )}
           </div>
+
+          {canRate && (
+            <div className="card-ui" style={{ padding: '32px', border: '1px solid #e2e8f0', background: 'rgba(255, 255, 255, 0.8)' }}>
+              <div className="project-head" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#0f172a' }}>Ratings & Reviews</h3>
+                <Button variant="secondary" onClick={loadRatings} disabled={isRatingsLoading} loading={isRatingsLoading} style={{ padding: '8px 20px', borderRadius: '12px' }}>Refresh</Button>
+              </div>
+
+              <RatingSummary summary={ratingSummary} />
+
+              {ratingError && (
+                <p style={{ margin: '14px 0 0', color: '#b91c1c', fontSize: '0.9rem', fontWeight: 700 }}>
+                  {ratingError}
+                </p>
+              )}
+
+              {!!ratings.length && (
+                <div style={{ marginTop: '20px', display: 'grid', gap: '10px' }}>
+                  {ratings.map((item) => (
+                    <div key={item.id} style={{ padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}>
+                      <p style={{ margin: 0, fontWeight: 800, color: '#0f172a' }}>
+                        {item.raterName} rated {item.rating}/5
+                      </p>
+                      <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: '0.9rem' }}>
+                        {item.reviewText || 'No review text provided.'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {canSubmitRating && !alreadyRated && (
+                <div style={{ marginTop: '20px', padding: '18px', borderRadius: '14px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'grid', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#0f172a' }}>Submit Freelancer Rating</h4>
+                  <select
+                    className="input"
+                    value={ratingValue}
+                    onChange={(e) => setRatingValue(Number(e.target.value))}
+                    disabled={isSubmittingRating}
+                    style={{ background: '#fff' }}
+                  >
+                    {[5, 4, 3, 2, 1].map((value) => (
+                      <option key={value} value={value}>{value} Star{value > 1 ? 's' : ''}</option>
+                    ))}
+                  </select>
+                  <textarea
+                    className="input"
+                    placeholder="Write a short review (optional)"
+                    value={reviewText}
+                    onChange={(e) => setReviewText(e.target.value)}
+                    disabled={isSubmittingRating}
+                    style={{ minHeight: '95px', resize: 'none', background: '#fff' }}
+                  />
+                  {!!Object.keys(ratingFieldErrors).length && (
+                    <p style={{ margin: 0, color: '#b91c1c', fontSize: '0.85rem', fontWeight: 700 }}>
+                      {Object.values(ratingFieldErrors)[0]}
+                    </p>
+                  )}
+                  <Button
+                    onClick={onSubmitRating}
+                    disabled={isSubmittingRating}
+                    loading={isSubmittingRating}
+                    style={{ borderRadius: '12px', fontWeight: 800 }}
+                  >
+                    Submit Rating
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
           {user?.role === 'business' && project.status === 'Open' && (
             <div className="card-ui" style={{ padding: '40px', border: '1px solid #e2e8f0', background: 'rgba(255, 255, 255, 0.8)' }}>
               <div className="project-head" style={{ marginBottom: '32px' }}>
                 <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>Talent Assessment Hub</h3>
               </div>
+              {isApplicationsLoading && (
+                <p style={{ margin: '0 0 16px', color: '#64748b', fontWeight: 700 }}>Loading applications...</p>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
                 {applications.map((app) => (
                   <div key={app.id} style={{ padding: '24px', background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -830,7 +934,15 @@ export default function ProjectDetailPage() {
                       </div>
                     )}
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', lineHeight: 1.5 }}>{app.coverLetter || app.bio || "Candidate has not provided a strategic summary."}</p>
-                    <Button onClick={() => onAcceptApplication(app.id)} disabled={app.status !== 'Pending'} fullWidth style={{ marginTop: 'auto', borderRadius: '12px', height: '48px', fontWeight: 800 }}>Assign Infrastructure</Button>
+                    <Button
+                      onClick={() => onAcceptApplication(app.id)}
+                      disabled={app.status !== 'Pending' || acceptingApplicationId != null}
+                      loading={acceptingApplicationId === app.id}
+                      fullWidth
+                      style={{ marginTop: 'auto', borderRadius: '12px', height: '48px', fontWeight: 800 }}
+                    >
+                      Assign Infrastructure
+                    </Button>
                   </div>
                 ))}
               </div>

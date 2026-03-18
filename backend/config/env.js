@@ -40,7 +40,7 @@ const env = {
   },
 };
 
-const required = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_NAME', 'JWT_SECRET'];
+const required = ['DB_HOST', 'DB_USER', 'DB_NAME', 'JWT_SECRET'];
 for (const key of required) {
   if (!readEnv(key)) {
     throw new Error(`Missing env variable: ${key}`);

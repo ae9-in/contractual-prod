@@ -1,6 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
+
+process.env.DB_HOST = process.env.DB_HOST || 'localhost';
+process.env.DB_PORT = process.env.DB_PORT || '3306';
+process.env.DB_USER = process.env.DB_USER || 'root';
+process.env.DB_NAME = process.env.DB_NAME || 'freelancer_platform';
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
+
 const app = require('../app');
 
 test('GET /health returns ok', async () => {

@@ -1,6 +1,7 @@
 const app = require('../app');
 const http = require('http');
 const pool = require('../config/db');
+const { makeRegisterPayload } = require('./testData');
 
 function fmt(name, status, note = '') {
   const suffix = note ? ` | ${note}` : '';
@@ -165,24 +166,27 @@ async function run() {
       const health = await request('http://127.0.0.1:5060', '/health');
       fmt('health', health.status);
 
-      const business = {
+      const business = makeRegisterPayload({
         name: 'Smoke Business',
         email: `smoke.biz.${ts}@test.com`,
         password: 'Password123',
         role: 'business',
-      };
-      const freelancer = {
+        seed: ts + 1,
+      });
+      const freelancer = makeRegisterPayload({
         name: 'Smoke Freelancer',
         email: `smoke.free.${ts}@test.com`,
         password: 'Password123',
         role: 'freelancer',
-      };
-      const freelancer2 = {
+        seed: ts + 2,
+      });
+      const freelancer2 = makeRegisterPayload({
         name: 'Smoke Freelancer 2',
         email: `smoke.free2.${ts}@test.com`,
         password: 'Password123',
         role: 'freelancer',
-      };
+        seed: ts + 3,
+      });
 
       let r = await request(base, '/api/auth/register', 'POST', business);
       fmt('register_business', r.status);
