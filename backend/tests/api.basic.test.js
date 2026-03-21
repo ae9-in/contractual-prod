@@ -43,6 +43,12 @@ test('POST /api/auth/login returns validation error for invalid email/password',
   assert.match(String(res.body.error || ''), /Validation failed/i);
 });
 
+test('POST /api/auth/forgot-password validates required fields', async () => {
+  const res = await request(app).post('/api/auth/forgot-password').send({});
+  assert.equal(res.status, 400);
+  assert.match(String(res.body.error || ''), /Validation failed/i);
+});
+
 test('GET /api/projects requires auth', async () => {
   const res = await request(app).get('/api/projects');
   assert.equal(res.status, 401);

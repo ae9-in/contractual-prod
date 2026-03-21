@@ -10,3 +10,8 @@ exports.login = asyncHandler(async (req, res) => {
   const result = await authService.login(req.body);
   res.json(result);
 });
+
+exports.forgotPassword = asyncHandler(async (req, res) => {
+  const result = await authService.forgotPassword(req.body);
+  res.json(result);
+});

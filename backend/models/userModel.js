@@ -32,9 +32,18 @@ async function create({ name, email, contactPhone, passwordHash, role }) {
   return findById(result.insertId);
 }
 
+async function updatePasswordByEmailAndPhone(email, phone, passwordHash) {
+  const [result] = await pool.execute(
+    'UPDATE users SET password_hash = ? WHERE email = ? AND phone = ?',
+    [passwordHash, email, phone],
+  );
+  return Number(result.affectedRows || 0) > 0;
+}
+
 module.exports = {
   findByEmail,
   findByPhone,
   findById,
   create,
+  updatePasswordByEmailAndPhone,
 };

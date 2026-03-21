@@ -112,6 +112,11 @@ export default function LoginPage() {
                 />
               </div>
               {fieldErrors.password && <p style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 600, margin: 0 }}>{fieldErrors.password}</p>}
+              <p style={{ margin: 0, textAlign: 'right' }}>
+                <Link to="/forgot-password" style={{ color: '#4f46e5', fontSize: '0.86rem', fontWeight: 700, textDecoration: 'none' }}>
+                  Forgot Password?
+                </Link>
+              </p>
             </div>
 
             {error && <p style={{ margin: 0, padding: '14px 16px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', fontWeight: 600, fontSize: '0.9rem' }}>{error}</p>}

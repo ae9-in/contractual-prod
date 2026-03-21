@@ -12,6 +12,7 @@ import { useAuth } from './hooks/useAuth';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 const BusinessDashboardPage = lazy(() => import('./pages/BusinessDashboardPage'));
 const PostProjectPage = lazy(() => import('./pages/PostProjectPage'));
 const FreelancerDashboardPage = lazy(() => import('./pages/FreelancerDashboardPage'));
@@ -38,9 +39,10 @@ function AnimatedRoutes() {
       >
         <Suspense fallback={<Loader label="Loading page..." />}>
           <Routes location={location}>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={isAuthenticated ? <Navigate to={roleHome} replace /> : <HomePage />} />
             <Route path="/login" element={isAuthenticated ? <Navigate to={roleHome} replace /> : <LoginPage />} />
             <Route path="/register" element={isAuthenticated ? <Navigate to={roleHome} replace /> : <RegisterPage />} />
+            <Route path="/forgot-password" element={isAuthenticated ? <Navigate to={roleHome} replace /> : <ForgotPasswordPage />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/projects/:id" element={<ProjectDetailPage />} />
@@ -66,7 +68,7 @@ function AnimatedRoutes() {
               </Route>
             </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to={isAuthenticated ? roleHome : '/'} replace />} />
           </Routes>
         </Suspense>
       </motion.div>

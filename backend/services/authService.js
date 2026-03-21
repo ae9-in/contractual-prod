@@ -17,6 +17,11 @@ const loginSchema = z.object({
   email: z.string().trim().email().toLowerCase(),
   password: z.string().min(8),
 });
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().email().toLowerCase(),
+  contactPhone: z.string().trim().regex(/^\d{10}$/, 'Contact phone must be a valid 10-digit number'),
+  newPassword: z.string().min(8),
+});
 
 async function register(data) {
   const payload = registerSchema.parse(data);
@@ -62,7 +67,20 @@ async function login(data) {
   };
 }
 
+async function forgotPassword(data) {
+  const payload = forgotPasswordSchema.parse(data);
+  const passwordHash = await bcrypt.hash(payload.newPassword, 10);
+  await userModel.updatePasswordByEmailAndPhone(
+    payload.email,
+    payload.contactPhone,
+    passwordHash,
+  );
+
+  return { success: true };
+}
+
 module.exports = {
   register,
   login,
+  forgotPassword,
 };

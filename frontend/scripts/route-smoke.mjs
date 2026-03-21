@@ -8,6 +8,7 @@ const requiredRoutes = [
   '/',
   '/login',
   '/register',
+  '/forgot-password',
   '/projects/:id',
   '/business/dashboard',
   '/business/post-project',

@@ -49,6 +49,9 @@ export function getStoredUserRaw() {
 }
 
 export function setStoredAuth(token, user) {
+  // Keep auth state in session scope only.
+  safeRemove(localStorage, TOKEN_KEY);
+  safeRemove(localStorage, USER_KEY);
   safeWrite(sessionStorage, TOKEN_KEY, token);
   safeWrite(sessionStorage, USER_KEY, JSON.stringify(user));
 }
@@ -56,5 +59,8 @@ export function setStoredAuth(token, user) {
 export function clearStoredAuth() {
   safeRemove(sessionStorage, TOKEN_KEY);
   safeRemove(sessionStorage, USER_KEY);
+  // Remove any legacy localStorage auth to prevent silent re-hydration after logout.
+  safeRemove(localStorage, TOKEN_KEY);
+  safeRemove(localStorage, USER_KEY);
 }
 
