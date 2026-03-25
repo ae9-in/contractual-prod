@@ -224,6 +224,49 @@ async function completeProject(projectId) {
   return findById(projectId);
 }
 
+/**
+ * Returns true if this user may download a file stored under uploads (project submission/reference or own profile photo).
+ */
+async function userMayAccessUploadedFile(filename, userId) {
+  const like = `%${String(filename)}%`;
+  const [projectRows] = await pool.execute(
+    `SELECT id FROM projects
+     WHERE (business_id = ? OR freelancer_id = ?)
+     AND (submission_files LIKE ? OR reference_files LIKE ?)
+     LIMIT 1`,
+    [userId, userId, like, like],
+  );
+  if (projectRows[0]) return true;
+
+  const [ownProfile] = await pool.execute(
+    `SELECT user_id AS userId FROM freelancer_profiles
+     WHERE user_id = ? AND profile_photo_url LIKE ?
+     LIMIT 1`,
+    [userId, like],
+  );
+  if (ownProfile[0]) return true;
+
+  const [businessViewApplicantPhoto] = await pool.execute(
+    `SELECT 1 AS ok
+     FROM freelancer_profiles fp
+     WHERE fp.profile_photo_url LIKE ?
+       AND EXISTS (
+         SELECT 1 FROM projects p
+         WHERE p.business_id = ?
+           AND (
+             p.freelancer_id = fp.user_id
+             OR EXISTS (
+               SELECT 1 FROM project_applications pa
+               WHERE pa.project_id = p.id AND pa.freelancer_id = fp.user_id
+             )
+           )
+       )
+     LIMIT 1`,
+    [like, userId],
+  );
+  return Boolean(businessViewApplicantPhoto[0]);
+}
+
 module.exports = {
   create,
   findById,
@@ -232,4 +275,5 @@ module.exports = {
   acceptProjectTx,
   submitProject,
   completeProject,
+  userMayAccessUploadedFile,
 };

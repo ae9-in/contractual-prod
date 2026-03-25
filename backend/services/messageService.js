@@ -4,14 +4,16 @@ const projectModel = require('../models/projectModel');
 const notificationService = require('./notificationService');
 const { emitToProject, emitToUser } = require('./realtimeService');
 const ApiError = require('../utils/ApiError');
+const { stripStoredHtml } = require('../utils/sanitizeText');
+const { sameUserId } = require('../utils/sameUserId');
 
 const messageSchema = z.object({
   messageText: z.string().trim().min(1).max(2000),
 });
 
 function assertMessagingAccess(project, userId) {
-  const isBusiness = project.businessId === userId;
-  const isAssignedFreelancer = project.freelancerId === userId;
+  const isBusiness = sameUserId(project.businessId, userId);
+  const isAssignedFreelancer = sameUserId(project.freelancerId, userId);
 
   if (!project.freelancerId) {
     throw new ApiError(400, 'Messaging is available only after project assignment');
@@ -39,11 +41,12 @@ async function sendProjectMessage(projectId, userId, data) {
 
   assertMessagingAccess(project, userId);
   const payload = messageSchema.parse(data);
-  const message = await messageModel.create({ projectId, senderId: userId, messageText: payload.messageText });
+  const messageText = stripStoredHtml(payload.messageText);
+  const message = await messageModel.create({ projectId, senderId: userId, messageText });
 
   emitToProject(projectId, 'messages:new', { projectId, message });
 
-  const recipientUserId = project.businessId === userId ? project.freelancerId : project.businessId;
+  const recipientUserId = sameUserId(project.businessId, userId) ? project.freelancerId : project.businessId;
   if (recipientUserId) {
     const notification = await notificationService.createNotification({
       userId: recipientUserId,

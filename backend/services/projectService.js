@@ -5,6 +5,8 @@ const paymentModel = require('../models/paymentModel');
 const notificationService = require('./notificationService');
 const ApiError = require('../utils/ApiError');
 const { persistUploadedFiles } = require('./fileStorageService');
+const { stripStoredHtml } = require('../utils/sanitizeText');
+const { sameUserId } = require('../utils/sameUserId');
 
 const optionalUrlSchema = z.preprocess(
   (value) => (typeof value === 'string' ? value.trim() : value),
@@ -30,6 +32,9 @@ const applySchema = z.object({
 
 async function createProject(data, businessId) {
   const payload = createProjectSchema.parse(data);
+  payload.title = stripStoredHtml(payload.title);
+  payload.description = stripStoredHtml(payload.description);
+  payload.skillsRequired = stripStoredHtml(payload.skillsRequired);
   const projectReferenceFiles = await persistUploadedFiles(data.projectReferenceFiles || [], {
     folder: 'project-references',
     localRoutePrefix: '/uploads/project-references',
@@ -66,7 +71,7 @@ async function applyForProject(projectId, freelancerId, data) {
   if (project.status !== 'Open') {
     throw new ApiError(400, 'Only Open projects can be applied');
   }
-  if (project.businessId === freelancerId) {
+  if (sameUserId(project.businessId, freelancerId)) {
     throw new ApiError(400, 'Project owner cannot apply');
   }
 
@@ -76,6 +81,7 @@ async function applyForProject(projectId, freelancerId, data) {
   }
 
   const payload = applySchema.parse(data || {});
+  payload.coverLetter = stripStoredHtml(payload.coverLetter);
   let application;
   try {
     application = await projectApplicationModel.create({
@@ -106,7 +112,7 @@ async function listProjectApplications(projectId, businessId) {
   if (!project) {
     throw new ApiError(404, 'Project not found');
   }
-  if (project.businessId !== businessId) {
+  if (!sameUserId(project.businessId, businessId)) {
     throw new ApiError(403, 'Only project owner can view applications');
   }
 
@@ -152,7 +158,9 @@ async function acceptProjectApplication(projectId, applicationId, businessId) {
 }
 
 async function submitProject(projectId, freelancerId, data) {
-  const { submissionText, submissionLink } = submitSchema.parse(data);
+  const parsed = submitSchema.parse(data);
+  const submissionText = stripStoredHtml(parsed.submissionText);
+  const submissionLink = parsed.submissionLink;
   const project = await projectModel.findById(projectId);
 
   if (!project) {
@@ -161,7 +169,7 @@ async function submitProject(projectId, freelancerId, data) {
   if (project.status !== 'Assigned') {
     throw new ApiError(400, 'Only Assigned projects can be submitted');
   }
-  if (project.freelancerId !== freelancerId) {
+  if (!sameUserId(project.freelancerId, freelancerId)) {
     throw new ApiError(403, 'Only assigned freelancer can submit work');
   }
 
@@ -189,7 +197,7 @@ async function completeProject(projectId, businessId) {
   if (!project) {
     throw new ApiError(404, 'Project not found');
   }
-  if (project.businessId !== businessId) {
+  if (!sameUserId(project.businessId, businessId)) {
     throw new ApiError(403, 'Only project owner can complete project');
   }
   if (project.status !== 'Submitted') {

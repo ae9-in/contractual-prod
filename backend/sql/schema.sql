@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT uq_users_email UNIQUE (email),
-  CONSTRAINT uq_users_phone UNIQUE (phone)
+  CONSTRAINT uq_users_phone UNIQUE (phone),
+  INDEX idx_users_created (created_at)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS projects (
@@ -48,7 +49,8 @@ CREATE TABLE IF NOT EXISTS projects (
   INDEX idx_projects_business (business_id),
   INDEX idx_projects_freelancer (freelancer_id),
   INDEX idx_projects_status (status),
-  INDEX idx_projects_deadline (deadline)
+  INDEX idx_projects_deadline (deadline),
+  INDEX idx_projects_created (created_at)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS freelancer_profiles (
@@ -64,7 +66,8 @@ CREATE TABLE IF NOT EXISTS freelancer_profiles (
   contact_email VARCHAR(190) NULL,
   contact_phone VARCHAR(30) NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_profiles_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  CONSTRAINT fk_profiles_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_profiles_updated (updated_at)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS messages (

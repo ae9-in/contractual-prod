@@ -3,6 +3,13 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+  server: {
+    host: '127.0.0.1',
+    strictPort: true,
+    hmr: {
+      host: '127.0.0.1',
+    },
+  },
   plugins: [react(), tailwindcss()],
   build: {
     cssCodeSplit: true,

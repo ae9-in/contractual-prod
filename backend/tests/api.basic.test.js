@@ -13,15 +13,15 @@ const app = require('../app');
 test('GET /health returns ok', async () => {
   const res = await request(app).get('/health');
   assert.equal(res.status, 200);
-  assert.deepEqual(res.body, { status: 'ok' });
+  assert.equal(res.body.status, 'ok');
+  assert.ok(res.body.timestamp);
 });
 
-test('POST /api/auth/register returns field-level validation details for bad payload', async () => {
+test('POST /api/auth/register returns generic validation error for bad payload', async () => {
   const res = await request(app).post('/api/auth/register').send({});
   assert.equal(res.status, 400);
   assert.match(String(res.body.error || ''), /Validation failed/i);
-  assert.ok(Array.isArray(res.body.details), 'details should be array');
-  assert.ok(res.body.details.length > 0, 'details should not be empty');
+  assert.equal(res.body.details, undefined);
 });
 
 test('POST /api/auth/register validates contact phone format', async () => {
@@ -33,8 +33,8 @@ test('POST /api/auth/register validates contact phone format', async () => {
     role: 'freelancer',
   });
   assert.equal(res.status, 400);
-  assert.match(String(res.body.error || ''), /contactPhone/i);
-  assert.ok(Array.isArray(res.body.details), 'details should be array');
+  assert.match(String(res.body.error || ''), /Validation failed/i);
+  assert.equal(res.body.details, undefined);
 });
 
 test('POST /api/auth/login returns validation error for invalid email/password', async () => {

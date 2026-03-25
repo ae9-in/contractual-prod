@@ -3,21 +3,26 @@ const env = require('../config/env');
 const userModel = require('../models/userModel');
 const ApiError = require('../utils/ApiError');
 
-async function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+/**
+ * Same as authMiddleware but also accepts ?token= for <img src> and other non-AJAX requests.
+ */
+async function fileAuthMiddleware(req, res, next) {
+  const bearer =
+    req.headers.authorization && req.headers.authorization.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7)
+      : '';
+  const qToken = String(req.query.token || '').trim();
+  const token = bearer || qToken;
+  if (!token) {
     return next(new ApiError(401, 'Unauthorized'));
   }
 
   try {
-    const token = authHeader.slice(7);
     const payload = jwt.verify(token, env.jwtSecret);
     const user = await userModel.findById(payload.sub);
-
     if (!user) {
       return next(new ApiError(401, 'Unauthorized'));
     }
-
     req.user = {
       id: user.id,
       role: user.role,
@@ -26,9 +31,9 @@ async function authMiddleware(req, res, next) {
       businessId: user.role === 'business' ? user.id : null,
     };
     return next();
-  } catch (error) {
+  } catch {
     return next(new ApiError(401, 'Unauthorized'));
   }
 }
 
-module.exports = authMiddleware;
+module.exports = fileAuthMiddleware;

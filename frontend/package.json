@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "start": "vite preview",
     "test:routes": "node scripts/route-smoke.mjs"
   },
   "dependencies": {

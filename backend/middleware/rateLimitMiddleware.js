@@ -16,7 +16,7 @@ function createRateLimiter({ windowMs = 15 * 60 * 1000, max = 10, keyPrefix = 'g
 
     row.count += 1;
     bucket.set(key, row);
-    if (row.count > max) {
+    if (row.count > max && process.env.NODE_ENV !== 'development') {
       return next(new ApiError(429, 'Too many requests. Please try again later.'));
     }
 

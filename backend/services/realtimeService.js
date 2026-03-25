@@ -3,13 +3,14 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userModel = require('../models/userModel');
 const projectModel = require('../models/projectModel');
+const { sameUserId } = require('../utils/sameUserId');
 
 let io;
 
 async function canJoinProject(projectId, userId) {
   const project = await projectModel.findById(Number(projectId));
   if (!project) return false;
-  return project.businessId === userId || project.freelancerId === userId;
+  return sameUserId(project.businessId, userId) || sameUserId(project.freelancerId, userId);
 }
 
 function initRealtime(server) {

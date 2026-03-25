@@ -1,9 +1,13 @@
 const asyncHandler = require('../utils/asyncHandler');
 const paymentService = require('../services/paymentService');
+const { sanitizeProjectForClient } = require('../utils/projectResponse');
 
 exports.getProjectPayment = asyncHandler(async (req, res) => {
   const payload = await paymentService.getProjectPayment(Number(req.params.id), req.user);
-  res.json(payload);
+  res.json({
+    ...payload,
+    project: sanitizeProjectForClient(payload.project, { isOwner: true }),
+  });
 });
 
 exports.fundProjectEscrow = asyncHandler(async (req, res) => {

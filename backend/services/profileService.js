@@ -3,6 +3,8 @@ const profileModel = require('../models/profileModel');
 const userModel = require('../models/userModel');
 const ApiError = require('../utils/ApiError');
 const { persistUploadedFile } = require('./fileStorageService');
+const { stripStoredHtml } = require('../utils/sanitizeText');
+const { toPublicUrl } = require('../utils/publicFileUrl');
 
 const nullableTrimmedString = (max = 2000) => z.preprocess(
   (value) => {
@@ -48,6 +50,15 @@ const profileSchema = z.object({
   contactPhone: optionalPhoneSchema.default(''),
 });
 
+function mapProfilePhotoForClient(profile) {
+  if (!profile) return profile;
+  const url = profile.profilePhotoUrl;
+  return {
+    ...profile,
+    profilePhotoUrl: url ? toPublicUrl(url) : url,
+  };
+}
+
 async function getProfile(userId) {
   const user = await userModel.findById(userId);
   const fallbackContactEmail = user?.email || '';
@@ -69,16 +80,22 @@ async function getProfile(userId) {
     };
   }
 
-  return {
+  return mapProfilePhotoForClient({
     ...profile,
     contactEmail: String(profile.contactEmail || '').trim() || fallbackContactEmail,
     contactPhone: String(profile.contactPhone || '').trim() || fallbackContactPhone,
-  };
+  });
 }
 
 async function upsertProfile(userId, data) {
-  const payload = profileSchema.parse(data);
-  return profileModel.upsertByUserId(userId, payload);
+  const raw = { ...data };
+  if (raw.bio != null) raw.bio = stripStoredHtml(raw.bio);
+  if (raw.skills != null) raw.skills = stripStoredHtml(raw.skills);
+  if (raw.organizationName != null) raw.organizationName = stripStoredHtml(raw.organizationName);
+  if (raw.organizationIndustry != null) raw.organizationIndustry = stripStoredHtml(raw.organizationIndustry);
+  const payload = profileSchema.parse(raw);
+  const saved = await profileModel.upsertByUserId(userId, payload);
+  return mapProfilePhotoForClient(saved);
 }
 
 async function updateProfilePhoto(userId, file) {
@@ -90,7 +107,8 @@ async function updateProfilePhoto(userId, file) {
     localRoutePrefix: '/uploads/profile-photos',
   });
   const profilePhotoUrl = uploaded.url;
-  return profileModel.updatePhotoByUserId(userId, profilePhotoUrl);
+  const saved = await profileModel.updatePhotoByUserId(userId, profilePhotoUrl);
+  return mapProfilePhotoForClient(saved);
 }
 
 module.exports = {

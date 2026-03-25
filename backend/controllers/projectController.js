@@ -1,10 +1,16 @@
 const asyncHandler = require('../utils/asyncHandler');
 const projectService = require('../services/projectService');
+const { sanitizeProjectForClient } = require('../utils/projectResponse');
+const { sameUserId } = require('../utils/sameUserId');
+
+function toProjectResponse(project, { isOwner }) {
+  return sanitizeProjectForClient(project, { isOwner });
+}
 
 exports.createProject = asyncHandler(async (req, res) => {
   const payload = { ...req.body, projectReferenceFiles: req.files || [] };
   const project = await projectService.createProject(payload, req.user.id);
-  res.status(201).json({ project });
+  res.status(201).json({ project: toProjectResponse(project, { isOwner: true }) });
 });
 
 exports.getProjects = asyncHandler(async (req, res) => {
@@ -19,7 +25,13 @@ exports.getProjects = asyncHandler(async (req, res) => {
   };
 
   const projects = await projectService.listProjects(filters);
-  res.json({ projects });
+  const sanitizedProjects = projects.map((project) => {
+    const isOwner =
+      sameUserId(project.freelancerId, req.user.id) ||
+      sameUserId(project.businessId, req.user.id);
+    return sanitizeProjectForClient(project, { isOwner });
+  });
+  res.json({ projects: sanitizedProjects });
 });
 
 exports.getProjectById = asyncHandler(async (req, res) => {
@@ -27,12 +39,28 @@ exports.getProjectById = asyncHandler(async (req, res) => {
     viewerId: req.user.id,
     viewerRole: req.user.role,
   });
-  res.json({ project });
+
+  if (
+    !sameUserId(project.freelancerId, req.user.id) &&
+    !sameUserId(project.businessId, req.user.id)
+  ) {
+    if (project.status !== 'Open') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    return res.json({
+      project: sanitizeProjectForClient(project, { isOwner: false }),
+    });
+  }
+
+  return res.json({
+    project: toProjectResponse(project, { isOwner: true }),
+  });
 });
 
 exports.getMyProjects = asyncHandler(async (req, res) => {
   const projects = await projectService.listBusinessProjects(req.user.id);
-  res.json({ projects });
+  const sanitizedProjects = projects.map((p) => sanitizeProjectForClient(p, { isOwner: true }));
+  res.json({ projects: sanitizedProjects });
 });
 
 exports.applyForProject = asyncHandler(async (req, res) => {
@@ -51,16 +79,16 @@ exports.acceptProjectApplication = asyncHandler(async (req, res) => {
     Number(req.params.applicationId),
     req.user.id,
   );
-  res.json({ project });
+  res.json({ project: toProjectResponse(project, { isOwner: true }) });
 });
 
 exports.submitProject = asyncHandler(async (req, res) => {
   const payload = { ...req.body, submissionFiles: req.files || [] };
   const project = await projectService.submitProject(Number(req.params.id), req.user.id, payload);
-  res.json({ project });
+  res.json({ project: toProjectResponse(project, { isOwner: true }) });
 });
 
 exports.completeProject = asyncHandler(async (req, res) => {
   const project = await projectService.completeProject(Number(req.params.id), req.user.id);
-  res.json({ project });
+  res.json({ project: toProjectResponse(project, { isOwner: true }) });
 });

@@ -2,6 +2,8 @@ const { z } = require('zod');
 const ratingModel = require('../models/ratingModel');
 const projectModel = require('../models/projectModel');
 const ApiError = require('../utils/ApiError');
+const { stripStoredHtml } = require('../utils/sanitizeText');
+const { sameUserId } = require('../utils/sameUserId');
 
 const ratingSchema = z.object({
   rating: z.coerce.number().int().min(1).max(5),
@@ -9,8 +11,8 @@ const ratingSchema = z.object({
 });
 
 function assertParticipant(project, userId) {
-  const isBusiness = project.businessId === userId;
-  const isFreelancer = project.freelancerId === userId;
+  const isBusiness = sameUserId(project.businessId, userId);
+  const isFreelancer = sameUserId(project.freelancerId, userId);
   if (!isBusiness && !isFreelancer) {
     throw new ApiError(403, 'Only project participants can access ratings');
   }
@@ -32,7 +34,7 @@ async function submitProjectRating(projectId, userId, data) {
     throw new ApiError(404, 'Project not found');
   }
   assertParticipant(project, userId);
-  if (project.businessId !== userId) {
+  if (!sameUserId(project.businessId, userId)) {
     throw new ApiError(403, 'Only the project business can submit a rating');
   }
 
@@ -41,6 +43,7 @@ async function submitProjectRating(projectId, userId, data) {
   }
 
   const payload = ratingSchema.parse(data);
+  const reviewText = stripStoredHtml(payload.reviewText);
 
   const existing = await ratingModel.findByProjectAndRater(projectId, userId);
   if (existing) {
@@ -58,7 +61,7 @@ async function submitProjectRating(projectId, userId, data) {
     raterId: userId,
     ratedUserId,
     rating: payload.rating,
-    reviewText: payload.reviewText,
+    reviewText,
   });
 }
 
