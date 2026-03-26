@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { sameUserId } = require('../utils/sameUserId');
 
 async function findByProjectAndFreelancer(projectId, freelancerId) {
   const [rows] = await pool.execute(
@@ -38,16 +39,28 @@ async function listByProjectWithFreelancerProfile(projectId) {
       fp.skills, fp.bio, fp.portfolio_link AS portfolioLink, fp.experience_years AS experienceYears,
       COALESCE(NULLIF(TRIM(fp.contact_email), ''), u.email) AS contactEmail,
       COALESCE(NULLIF(TRIM(fp.contact_phone), ''), u.phone) AS contactPhone,
-      COALESCE(ROUND((SELECT AVG(pr.rating) FROM project_ratings pr WHERE pr.rated_user_id = pa.freelancer_id), 2), 0) AS averageRating,
-      (SELECT COUNT(*) FROM project_ratings pr WHERE pr.rated_user_id = pa.freelancer_id) AS totalRatings,
-      (SELECT COUNT(*) FROM project_ratings pr WHERE pr.rated_user_id = pa.freelancer_id AND pr.rating = 5) AS rating5Count,
-      (SELECT COUNT(*) FROM project_ratings pr WHERE pr.rated_user_id = pa.freelancer_id AND pr.rating = 4) AS rating4Count,
-      (SELECT COUNT(*) FROM project_ratings pr WHERE pr.rated_user_id = pa.freelancer_id AND pr.rating = 3) AS rating3Count,
-      (SELECT COUNT(*) FROM project_ratings pr WHERE pr.rated_user_id = pa.freelancer_id AND pr.rating = 2) AS rating2Count,
-      (SELECT COUNT(*) FROM project_ratings pr WHERE pr.rated_user_id = pa.freelancer_id AND pr.rating = 1) AS rating1Count
+      COALESCE(rs.averageRating, 0) AS averageRating,
+      COALESCE(rs.totalRatings, 0) AS totalRatings,
+      COALESCE(rs.rating5Count, 0) AS rating5Count,
+      COALESCE(rs.rating4Count, 0) AS rating4Count,
+      COALESCE(rs.rating3Count, 0) AS rating3Count,
+      COALESCE(rs.rating2Count, 0) AS rating2Count,
+      COALESCE(rs.rating1Count, 0) AS rating1Count
      FROM project_applications pa
      INNER JOIN users u ON u.id = pa.freelancer_id
      LEFT JOIN freelancer_profiles fp ON fp.user_id = pa.freelancer_id
+     LEFT JOIN (
+       SELECT rated_user_id,
+         ROUND(AVG(rating), 2) AS averageRating,
+         COUNT(*) AS totalRatings,
+         SUM(rating = 5) AS rating5Count,
+         SUM(rating = 4) AS rating4Count,
+         SUM(rating = 3) AS rating3Count,
+         SUM(rating = 2) AS rating2Count,
+         SUM(rating = 1) AS rating1Count
+       FROM project_ratings
+       GROUP BY rated_user_id
+     ) rs ON rs.rated_user_id = pa.freelancer_id
      WHERE pa.project_id = ?
      ORDER BY pa.created_at DESC, pa.id DESC`,
     [projectId],
@@ -69,7 +82,7 @@ async function acceptApplicationTx(projectId, applicationId, businessId) {
     );
     const project = projectRows[0];
     if (!project) throw new Error('PROJECT_NOT_FOUND');
-    if (project.businessId !== businessId) throw new Error('FORBIDDEN');
+    if (!sameUserId(project.businessId, businessId)) throw new Error('FORBIDDEN');
     if (project.status !== 'Open' || project.freelancerId) throw new Error('PROJECT_NOT_OPEN');
 
     const [appRows] = await connection.execute(

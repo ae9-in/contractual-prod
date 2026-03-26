@@ -1,5 +1,5 @@
 const path = require('path');
-const { resolveUploadsRoot } = require('../utils/uploadsPath');
+const { cloudinaryEnabled, uploadBufferToCloudinary } = require('../utils/cloudinaryClient');
 
 /**
  * Persist a single uploaded file (already saved to disk by multer).
@@ -8,8 +8,14 @@ const { resolveUploadsRoot } = require('../utils/uploadsPath');
 async function persistUploadedFile(file, { folder = '', localRoutePrefix = '/uploads' } = {}) {
     if (!file) return null;
 
-    const uploadsRoot = resolveUploadsRoot();
-    const folderDir = folder ? path.join(uploadsRoot, folder) : uploadsRoot;
+    if (cloudinaryEnabled && file.buffer) {
+        const uploaded = await uploadBufferToCloudinary(file, { folder: folder || 'uploads' });
+        return {
+            url: uploaded.secure_url,
+            originalName: file.originalname || path.basename(uploaded.public_id || 'file'),
+            size: file.size || 0,
+        };
+    }
 
     // multer already saved the file; just build the public URL
     const filename = path.basename(file.path || file.filename);

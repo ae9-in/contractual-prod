@@ -1,6 +1,7 @@
 const notificationModel = require('../models/notificationModel');
 const ApiError = require('../utils/ApiError');
 const { emitToUser } = require('./realtimeService');
+const { sameUserId } = require('../utils/sameUserId');
 
 async function emitUnreadCount(userId) {
   const unreadCount = await notificationModel.countUnreadByUser(userId);
@@ -15,8 +16,8 @@ async function createNotification(payload) {
   return notification;
 }
 
-async function getMyNotifications(userId) {
-  const notifications = await notificationModel.listByUser(userId);
+async function getMyNotifications(userId, options = {}) {
+  const notifications = await notificationModel.listByUser(userId, options);
   const unreadCount = await notificationModel.countUnreadByUser(userId);
   return { notifications, unreadCount };
 }
@@ -35,7 +36,7 @@ async function markNotificationRead(notificationId, userId) {
   if (!notification) {
     throw new ApiError(404, 'Notification not found');
   }
-  if (notification.userId !== userId) {
+  if (!sameUserId(notification.userId, userId)) {
     throw new ApiError(403, 'Forbidden');
   }
   const updated = await notificationModel.markRead(notificationId);

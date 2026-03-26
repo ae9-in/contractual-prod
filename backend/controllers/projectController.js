@@ -22,6 +22,8 @@ exports.getProjects = asyncHandler(async (req, res) => {
     freelancerId: req.query.assignedToMe === 'true' ? req.user.id : undefined,
     viewerId: req.user.id,
     viewerRole: req.user.role,
+    page: req.query.page ? Number(req.query.page) : 1,
+    limit: req.query.limit ? Number(req.query.limit) : 20,
   };
 
   const projects = await projectService.listProjects(filters);
@@ -31,6 +33,7 @@ exports.getProjects = asyncHandler(async (req, res) => {
       sameUserId(project.businessId, req.user.id);
     return sanitizeProjectForClient(project, { isOwner });
   });
+  res.set('Cache-Control', 'private, max-age=5');
   res.json({ projects: sanitizedProjects });
 });
 
@@ -47,6 +50,7 @@ exports.getProjectById = asyncHandler(async (req, res) => {
     if (project.status !== 'Open') {
       return res.status(403).json({ error: 'Forbidden' });
     }
+    res.set('Cache-Control', 'private, max-age=5');
     return res.json({
       project: sanitizeProjectForClient(project, { isOwner: false }),
     });

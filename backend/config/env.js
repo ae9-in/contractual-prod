@@ -22,7 +22,7 @@ const env = {
     password: readEnv('DB_PASSWORD'),
     database: readEnv('DB_NAME'),
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: Number(readEnv('DB_POOL_SIZE', '10') || 10),
   },
   jwtSecret: readEnv('JWT_SECRET'),
   jwtExpiresIn: readEnv('JWT_EXPIRES_IN', '7d'),

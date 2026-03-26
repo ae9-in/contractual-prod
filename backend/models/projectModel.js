@@ -67,15 +67,8 @@ async function findById(id, options = {}) {
   const includeApplicantFields = viewerRole === 'freelancer' && viewerId != null;
   const applicantSelect = includeApplicantFields
     ? `,
-      EXISTS(
-        SELECT 1 FROM project_applications pa
-        WHERE pa.project_id = p.id AND pa.freelancer_id = ?
-      ) AS hasApplied,
-      (
-        SELECT pa.status FROM project_applications pa
-        WHERE pa.project_id = p.id AND pa.freelancer_id = ?
-        LIMIT 1
-      ) AS applicationStatus`
+      IF(vpa.id IS NULL, 0, 1) AS hasApplied,
+      vpa.status AS applicationStatus`
     : ', 0 AS hasApplied, NULL AS applicationStatus';
   const [rows] = await pool.execute(
     `SELECT p.id, p.business_id AS businessId, p.title, p.description, p.budget,
@@ -91,13 +84,16 @@ async function findById(id, options = {}) {
      INNER JOIN users u ON u.id = p.business_id
      LEFT JOIN users fu ON fu.id = p.freelancer_id
      LEFT JOIN freelancer_profiles fp ON fp.user_id = p.freelancer_id
+     ${includeApplicantFields ? 'LEFT JOIN project_applications vpa ON vpa.project_id = p.id AND vpa.freelancer_id = ?' : ''}
      WHERE p.id = ? LIMIT 1`,
-    includeApplicantFields ? [viewerId, viewerId, id] : [id],
+    includeApplicantFields ? [viewerId, id] : [id],
   );
   return normalizeProjectRow(rows[0] || null);
 }
 
-async function list({ status, minBudget, maxBudget, skill, freelancerId, viewerId, viewerRole }) {
+async function list({
+  status, minBudget, maxBudget, skill, freelancerId, viewerId, viewerRole, page = 1, limit = 20,
+}) {
   const clauses = [];
   const params = [];
   const includeApplicantFields = viewerRole === 'freelancer' && viewerId != null;
@@ -126,18 +122,16 @@ async function list({ status, minBudget, maxBudget, skill, freelancerId, viewerI
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const applicantSelect = includeApplicantFields
     ? `,
-      EXISTS(
-        SELECT 1 FROM project_applications pa
-        WHERE pa.project_id = p.id AND pa.freelancer_id = ?
-      ) AS hasApplied,
-      (
-        SELECT pa.status FROM project_applications pa
-        WHERE pa.project_id = p.id AND pa.freelancer_id = ?
-        LIMIT 1
-      ) AS applicationStatus`
+      IF(vpa.id IS NULL, 0, 1) AS hasApplied,
+      vpa.status AS applicationStatus`
     : ', 0 AS hasApplied, NULL AS applicationStatus';
 
-  const queryParams = includeApplicantFields ? [viewerId, viewerId, ...params] : params;
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 100));
+  const safePage = Math.max(1, Number(page) || 1);
+  const offset = (safePage - 1) * safeLimit;
+  const queryParams = includeApplicantFields
+    ? [viewerId, ...params, safeLimit, offset]
+    : [...params, safeLimit, offset];
   const [rows] = await pool.execute(
     `SELECT p.id, p.business_id AS businessId, p.title, p.description, p.budget,
       p.skills_required AS skillsRequired, p.deadline, p.status, p.freelancer_id AS freelancerId,
@@ -152,8 +146,10 @@ async function list({ status, minBudget, maxBudget, skill, freelancerId, viewerI
      INNER JOIN users u ON u.id = p.business_id
      LEFT JOIN users fu ON fu.id = p.freelancer_id
      LEFT JOIN freelancer_profiles fp ON fp.user_id = p.freelancer_id
+     ${includeApplicantFields ? 'LEFT JOIN project_applications vpa ON vpa.project_id = p.id AND vpa.freelancer_id = ?' : ''}
      ${where}
-     ORDER BY p.created_at DESC`,
+     ORDER BY p.created_at DESC
+     LIMIT ? OFFSET ?`,
     queryParams,
   );
   return rows.map(normalizeProjectRow);

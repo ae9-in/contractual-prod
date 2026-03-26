@@ -2,7 +2,9 @@ const asyncHandler = require('../utils/asyncHandler');
 const notificationService = require('../services/notificationService');
 
 exports.getMyNotifications = asyncHandler(async (req, res) => {
-  const result = await notificationService.getMyNotifications(req.user.id);
+  const limit = req.query.limit ? Number(req.query.limit) : 100;
+  const offset = req.query.offset ? Number(req.query.offset) : 0;
+  const result = await notificationService.getMyNotifications(req.user.id, { limit, offset });
   res.json(result);
 });
 

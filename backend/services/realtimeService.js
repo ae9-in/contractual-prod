@@ -6,17 +6,29 @@ const projectModel = require('../models/projectModel');
 const { sameUserId } = require('../utils/sameUserId');
 
 let io;
+const accessCache = new Map();
+const ACCESS_TTL_MS = 30 * 1000;
 
 async function canJoinProject(projectId, userId) {
+  const key = `${Number(projectId)}:${Number(userId)}`;
+  const cached = accessCache.get(key);
+  if (cached && (Date.now() - cached.at) < ACCESS_TTL_MS) {
+    return cached.allowed;
+  }
   const project = await projectModel.findById(Number(projectId));
-  if (!project) return false;
-  return sameUserId(project.businessId, userId) || sameUserId(project.freelancerId, userId);
+  if (!project) {
+    accessCache.set(key, { allowed: false, at: Date.now() });
+    return false;
+  }
+  const allowed = sameUserId(project.businessId, userId) || sameUserId(project.freelancerId, userId);
+  accessCache.set(key, { allowed, at: Date.now() });
+  return allowed;
 }
 
 function initRealtime(server) {
   io = new Server(server, {
     cors: {
-      origin: true,
+      origin: env.nodeEnv === 'production' ? (env.corsOrigins.length ? env.corsOrigins : false) : true,
       credentials: true,
     },
   });

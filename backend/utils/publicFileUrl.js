@@ -6,6 +6,8 @@ const path = require('path');
 function toPublicUrl(internalPath) {
   if (internalPath == null || internalPath === '') return internalPath;
   const s = String(internalPath).trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith('/api/files/')) return s;
   const filename = s.split('/').pop() || s;
   if (!filename) return '/api/files/';
   return `/api/files/${filename}`;

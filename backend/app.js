@@ -1,6 +1,6 @@
 const express = require('express');
-const cors = require('cors');
 const compression = require('compression');
+const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const env = require('./config/env');
 const authRoutes = require('./routes/authRoutes');
@@ -20,14 +20,20 @@ if (process.env.TRUST_PROXY === '1') {
   app.set('trust proxy', 1);
 }
 
-app.use(compression());
 app.use(require('helmet')({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
-app.use(cors({
-  origin: true,
-  credentials: true,
-}));
+const corsOptions = env.nodeEnv === 'production'
+  ? {
+      origin: env.corsOrigins.length ? env.corsOrigins : false,
+      credentials: true,
+    }
+  : {
+      origin: true,
+      credentials: true,
+    };
+app.use(cors(corsOptions));
+app.use(compression());
 app.use(require('morgan')('dev'));
 app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), paymentController.handleGatewayWebhook);
 app.use(express.json());
@@ -46,27 +52,14 @@ const generalLimiter = rateLimit({
   message: { error: 'Too many requests. Slow down.' },
 });
 
-if (process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development') {
+if (process.env.NODE_ENV !== 'test') {
   app.use('/api/auth/login', authLimiter);
   app.use('/api/auth/register', authLimiter);
   app.use('/api/', generalLimiter);
 }
 
-app.get('/health', async (req, res) => {
-  let dbStatus = 'ok';
-  try {
-    const pool = require('./config/db');
-    await pool.query('SELECT 1');
-  } catch (error) {
-    dbStatus = 'unreachable';
-  }
-
-  res.json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    database: dbStatus,
-  });
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
 });
 
 app.use('/api/auth', authRoutes);

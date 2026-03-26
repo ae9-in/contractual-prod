@@ -23,14 +23,14 @@ function assertMessagingAccess(project, userId) {
   }
 }
 
-async function listProjectMessages(projectId, userId) {
+async function listProjectMessages(projectId, userId, options = {}) {
   const project = await projectModel.findById(projectId);
   if (!project) {
     throw new ApiError(404, 'Project not found');
   }
 
   assertMessagingAccess(project, userId);
-  return messageModel.listByProject(projectId);
+  return messageModel.listByProject(projectId, options);
 }
 
 async function sendProjectMessage(projectId, userId, data) {

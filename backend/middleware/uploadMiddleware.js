@@ -2,14 +2,17 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const { resolveUploadsRoot } = require('../utils/uploadsPath');
+const { cloudinaryEnabled } = require('../utils/cloudinaryClient');
 
 const uploadsRoot = resolveUploadsRoot();
 const submissionsDir = path.join(uploadsRoot, 'submissions');
 const projectReferencesDir = path.join(uploadsRoot, 'project-references');
 const profilePhotosDir = path.join(uploadsRoot, 'profile-photos');
-fs.mkdirSync(submissionsDir, { recursive: true });
-fs.mkdirSync(projectReferencesDir, { recursive: true });
-fs.mkdirSync(profilePhotosDir, { recursive: true });
+if (!cloudinaryEnabled) {
+  fs.mkdirSync(submissionsDir, { recursive: true });
+  fs.mkdirSync(projectReferencesDir, { recursive: true });
+  fs.mkdirSync(profilePhotosDir, { recursive: true });
+}
 
 function makeStorage(destinationDir) {
   return multer.diskStorage({
@@ -22,9 +25,9 @@ function makeStorage(destinationDir) {
   });
 }
 
-const submissionsStorage = makeStorage(submissionsDir);
-const projectReferenceStorage = makeStorage(projectReferencesDir);
-const profilePhotoStorage = makeStorage(profilePhotosDir);
+const submissionsStorage = cloudinaryEnabled ? multer.memoryStorage() : makeStorage(submissionsDir);
+const projectReferenceStorage = cloudinaryEnabled ? multer.memoryStorage() : makeStorage(projectReferencesDir);
+const profilePhotoStorage = cloudinaryEnabled ? multer.memoryStorage() : makeStorage(profilePhotosDir);
 
 const uploadSubmissionFiles = multer({
   storage: submissionsStorage,
