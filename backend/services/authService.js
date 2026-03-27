@@ -46,11 +46,17 @@ async function login(data) {
   const payload = loginSchema.parse(data);
   const user = await userModel.findByEmail(payload.email);
 
-  if (!user) {
+  if (!user || !user.passwordHash || typeof user.passwordHash !== 'string') {
     throw new ApiError(401, 'Invalid credentials');
   }
 
-  const valid = await bcrypt.compare(payload.password, user.passwordHash);
+  let valid = false;
+  try {
+    valid = await bcrypt.compare(payload.password, user.passwordHash);
+  } catch {
+    // Corrupted/non-bcrypt hashes should not surface as 500.
+    throw new ApiError(401, 'Invalid credentials');
+  }
   if (!valid) {
     throw new ApiError(401, 'Invalid credentials');
   }

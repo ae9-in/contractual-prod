@@ -2,6 +2,7 @@ const express = require('express');
 const compression = require('compression');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = rateLimit;
 const env = require('./config/env');
 const authRoutes = require('./routes/authRoutes');
 const projectRoutes = require('./routes/projectRoutes');
@@ -38,9 +39,24 @@ app.use(require('morgan')('dev'));
 app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), paymentController.handleGatewayWebhook);
 app.use(express.json());
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
+const loginLimiter = rateLimit({
+  windowMs: Number(process.env.RATE_LIMIT_LOGIN_WINDOW_MS || 15 * 60 * 1000),
+  max: Number(process.env.RATE_LIMIT_LOGIN_MAX || 30),
+  // Shared IPs are common on mobile/carrier networks, so key by IP+email.
+  keyGenerator: (req) => {
+    const ip = ipKeyGenerator(req.ip || req.socket?.remoteAddress || 'unknown');
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    return `login:${ip}:${email || 'unknown'}`;
+  },
+  message: { error: 'Too many login attempts. Try again in a few minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+});
+
+const registerLimiter = rateLimit({
+  windowMs: Number(process.env.RATE_LIMIT_REGISTER_WINDOW_MS || 15 * 60 * 1000),
+  max: Number(process.env.RATE_LIMIT_REGISTER_MAX || 10),
   message: { error: 'Too many attempts. Try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -53,8 +69,8 @@ const generalLimiter = rateLimit({
 });
 
 if (process.env.NODE_ENV !== 'test') {
-  app.use('/api/auth/login', authLimiter);
-  app.use('/api/auth/register', authLimiter);
+  app.use('/api/auth/login', loginLimiter);
+  app.use('/api/auth/register', registerLimiter);
   app.use('/api/', generalLimiter);
 }
 
