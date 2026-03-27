@@ -73,7 +73,8 @@ async function findById(id, options = {}) {
       vpa.status AS applicationStatus`
     : ', 0 AS hasApplied, NULL AS applicationStatus';
   const [rows] = await pool.execute(
-    `SELECT p.id, p.business_id AS "businessId", p.title, p.description, p.budget,
+    `SELECT p.id, p.business_id AS "businessId", p.title, p.description,
+      COALESCE(p.budget, pp.amount) AS budget,
       p.skills_required AS "skillsRequired", p.deadline, p.status, p.freelancer_id AS "freelancerId",
       p.reference_link AS "referenceLink", p.reference_files AS "referenceFiles",
       p.submission_text AS "submissionText", p.submission_link AS "submissionLink",
@@ -83,6 +84,7 @@ async function findById(id, options = {}) {
       COALESCE(NULLIF(TRIM(fp.contact_phone), ''), fu.phone) AS "freelancerContactPhone"
       ${applicantSelect}
      FROM projects p
+     LEFT JOIN project_payments pp ON pp.project_id = p.id
      INNER JOIN users u ON u.id = p.business_id
      LEFT JOIN users fu ON fu.id = p.freelancer_id
      LEFT JOIN freelancer_profiles fp ON fp.user_id = p.freelancer_id
@@ -135,7 +137,8 @@ async function list({
     ? [viewerId, ...params, safeLimit, offset]
     : [...params, safeLimit, offset];
   const [rows] = await pool.execute(
-    `SELECT p.id, p.business_id AS "businessId", p.title, p.description, p.budget,
+    `SELECT p.id, p.business_id AS "businessId", p.title, p.description,
+      COALESCE(p.budget, pp.amount) AS budget,
       p.skills_required AS "skillsRequired", p.deadline, p.status, p.freelancer_id AS "freelancerId",
       p.reference_link AS "referenceLink", p.reference_files AS "referenceFiles",
       p.submission_text AS "submissionText", p.submission_link AS "submissionLink",
@@ -145,6 +148,7 @@ async function list({
       COALESCE(NULLIF(TRIM(fp.contact_phone), ''), fu.phone) AS "freelancerContactPhone"
       ${applicantSelect}
      FROM projects p
+     LEFT JOIN project_payments pp ON pp.project_id = p.id
      INNER JOIN users u ON u.id = p.business_id
      LEFT JOIN users fu ON fu.id = p.freelancer_id
      LEFT JOIN freelancer_profiles fp ON fp.user_id = p.freelancer_id
@@ -161,15 +165,17 @@ async function listByBusiness(businessId, { limit = 20, offset = 0 } = {}) {
   const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
   const safeOffset = Math.max(0, Number(offset) || 0);
   const [rows] = await pool.execute(
-    `SELECT id, business_id AS "businessId", title, description, budget,
+    `SELECT p.id, p.business_id AS "businessId", p.title, p.description,
+      COALESCE(p.budget, pp.amount) AS budget,
       skills_required AS "skillsRequired", deadline, status, freelancer_id AS "freelancerId",
       reference_link AS "referenceLink", reference_files AS "referenceFiles",
       submission_text AS "submissionText", submission_link AS "submissionLink",
       submission_files AS "submissionFiles", created_at AS "createdAt",
       NULL AS "freelancerContactEmail", NULL AS "freelancerContactPhone"
-     FROM projects
-     WHERE business_id = ?
-     ORDER BY created_at DESC
+     FROM projects p
+     LEFT JOIN project_payments pp ON pp.project_id = p.id
+     WHERE p.business_id = ?
+     ORDER BY p.created_at DESC
      LIMIT ? OFFSET ?`,
     [businessId, safeLimit, safeOffset],
   );
