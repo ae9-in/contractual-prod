@@ -14,10 +14,13 @@ const optionalUrlSchema = z.preprocess(
 );
 
 const createProjectSchema = z.object({
-  title: z.string().trim().min(5),
-  description: z.string().trim().min(20),
-  budget: z.coerce.number().positive(),
-  skillsRequired: z.string().trim().min(2),
+  title: z.string().trim().min(3),
+  description: z.string().trim().min(5),
+  budget: z.preprocess((value) => {
+    if (typeof value === 'string') return value.replace(/[^0-9.-]/g, '');
+    return value;
+  }, z.coerce.number().positive()),
+  skillsRequired: z.string().trim().min(1),
   deadline: z.string().trim().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid date'),
   referenceLink: optionalUrlSchema.default(''),
 });

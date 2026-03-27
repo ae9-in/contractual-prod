@@ -36,10 +36,10 @@ export default function PostProjectPage() {
     const budget = Number(form.budget);
     const deadlineMs = Date.parse(String(form.deadline || ''));
 
-    if (title.length < 5) nextErrors.title = 'Title must be at least 5 characters.';
-    if (description.length < 20) nextErrors.description = 'Description must be at least 20 characters.';
+    if (title.length < 3) nextErrors.title = 'Title must be at least 3 characters.';
+    if (description.length < 5) nextErrors.description = 'Description must be at least 5 characters.';
     if (!Number.isFinite(budget) || budget <= 0) nextErrors.budget = 'Budget must be greater than 0.';
-    if (skills.length < 2) nextErrors.skillsRequired = 'Please add at least one required skill.';
+    if (skills.length < 1) nextErrors.skillsRequired = 'Please add at least one required skill.';
     if (Number.isNaN(deadlineMs)) nextErrors.deadline = 'Please choose a valid deadline.';
 
     return nextErrors;
