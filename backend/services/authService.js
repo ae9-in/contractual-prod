@@ -23,6 +23,15 @@ const forgotPasswordSchema = z.object({
   newPassword: z.string().min(8),
 });
 
+function normalizeBcryptHash(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  const hash = raw.trim();
+  // Imported datasets from other stacks sometimes store bcrypt as $2y$ / $2x$.
+  if (hash.startsWith('$2y$')) return `$2b$${hash.slice(4)}`;
+  if (hash.startsWith('$2x$')) return `$2b$${hash.slice(4)}`;
+  return hash;
+}
+
 async function register(data) {
   const payload = registerSchema.parse(data);
 
@@ -50,9 +59,14 @@ async function login(data) {
     throw new ApiError(401, 'Invalid credentials');
   }
 
+  const normalizedHash = normalizeBcryptHash(user.passwordHash);
+  if (!normalizedHash) {
+    throw new ApiError(401, 'Invalid credentials');
+  }
+
   let valid = false;
   try {
-    valid = await bcrypt.compare(payload.password, user.passwordHash);
+    valid = await bcrypt.compare(payload.password, normalizedHash);
   } catch {
     // Corrupted/non-bcrypt hashes should not surface as 500.
     throw new ApiError(401, 'Invalid credentials');
