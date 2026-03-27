@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import {
   acceptProjectApplication,
   applyForProject,
@@ -51,6 +51,7 @@ function resolveBudget(project) {
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
   const { user } = useAuth();
   const { addToast } = useToast();
   const [project, setProject] = useState(null);
@@ -90,6 +91,7 @@ export default function ProjectDetailPage() {
   const [typingUsers, setTypingUsers] = useState({});
   const typingTimeoutRef = useRef(null);
   const chatEndRef = useRef(null);
+  const applicationsSectionRef = useRef(null);
   const canUseMessaging = Boolean(
     project?.freelancerId && (project?.businessId === user?.id || project?.freelancerId === user?.id),
   );
@@ -115,6 +117,9 @@ export default function ProjectDetailPage() {
     user?.role === 'business' && project?.status === 'Submitted' && payment?.status === 'Released',
   );
   const canAddTip = Boolean(user?.role === 'business' && payment && payment.status !== 'Unfunded');
+  const isBusinessOwner = Boolean(
+    user?.role === 'business' && Number(project?.businessId) === Number(user?.id),
+  );
   const apiOrigin = import.meta.env.VITE_API_URL || '';
   const ratingSummary = useMemo(() => {
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
@@ -215,14 +220,18 @@ export default function ProjectDetailPage() {
   };
 
   useEffect(() => {
-    if (
-      user?.role === 'business' &&
-      project?.status === 'Open' &&
-      Number(project?.businessId) === Number(user?.id)
-    ) {
+    if (isBusinessOwner) {
       loadApplications();
     }
-  }, [project?.id, project?.status, project?.businessId, user?.id, user?.role]);
+  }, [project?.id, isBusinessOwner]);
+
+  useEffect(() => {
+    if (!isBusinessOwner || location.hash !== '#applications') return;
+    const timer = setTimeout(() => {
+      applicationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isBusinessOwner, location.hash, applications.length]);
 
   const loadPayment = async () => {
     if (!project?.id || !canViewPayment) return;
@@ -952,13 +961,18 @@ export default function ProjectDetailPage() {
             </div>
           )}
 
-          {user?.role === 'business' && project.status === 'Open' && (
-            <div className="card-ui" style={{ padding: '40px', border: '1px solid #e2e8f0', background: 'rgba(255, 255, 255, 0.8)' }}>
+          {isBusinessOwner && (
+            <div ref={applicationsSectionRef} id="applications" className="card-ui" style={{ padding: '40px', border: '1px solid #e2e8f0', background: 'rgba(255, 255, 255, 0.8)' }}>
               <div className="project-head" style={{ marginBottom: '32px' }}>
                 <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>Talent Assessment Hub</h3>
               </div>
               {isApplicationsLoading && (
                 <p style={{ margin: '0 0 16px', color: '#64748b', fontWeight: 700 }}>Loading applications...</p>
+              )}
+              {!isApplicationsLoading && applications.length === 0 && (
+                <p style={{ margin: '0 0 16px', color: '#64748b', fontWeight: 700 }}>
+                  No applications yet for this project.
+                </p>
               )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
                 {applications.map((app) => (
@@ -998,7 +1012,7 @@ export default function ProjectDetailPage() {
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', lineHeight: 1.5 }}>{app.coverLetter || app.bio || "Candidate has not provided a strategic summary."}</p>
                     <Button
                       onClick={() => onAcceptApplication(app.id)}
-                      disabled={app.status !== 'Pending' || acceptingApplicationId != null}
+                      disabled={project.status !== 'Open' || app.status !== 'Pending' || acceptingApplicationId != null}
                       loading={acceptingApplicationId === app.id}
                       fullWidth
                       style={{ marginTop: 'auto', borderRadius: '12px', height: '48px', fontWeight: 800 }}

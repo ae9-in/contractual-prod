@@ -201,11 +201,21 @@ export default function MyProjectsPage() {
                         </span>
                       ) : 'Awaiting Applications'}
                     </div>
-                    <Link to={`/projects/${project.id}`}>
-                      <Button variant="secondary" className="btn-sm" style={{ height: '38px', borderRadius: '10px', fontSize: '0.9rem' }}>
-                        Manage <ChevronRight size={14} style={{ marginLeft: '4px' }} />
-                      </Button>
-                    </Link>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <Link
+                        to={`/projects/${project.id}#applications`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button variant="secondary" className="btn-sm" style={{ height: '38px', borderRadius: '10px', fontSize: '0.85rem' }}>
+                          Applications
+                        </Button>
+                      </Link>
+                      <Link to={`/projects/${project.id}`} onClick={(e) => e.stopPropagation()}>
+                        <Button variant="secondary" className="btn-sm" style={{ height: '38px', borderRadius: '10px', fontSize: '0.9rem' }}>
+                          Manage <ChevronRight size={14} style={{ marginLeft: '4px' }} />
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </motion.div>
               ))}
