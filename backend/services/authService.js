@@ -73,43 +73,60 @@ async function login(data) {
   if (normalizedPassword.length < 8) {
     throw new ApiError(401, 'Invalid credentials');
   }
-  const user = await userModel.findByEmail(payload.email);
-
-  if (!user || !user.passwordHash || typeof user.passwordHash !== 'string') {
-    throw new ApiError(401, 'Invalid credentials');
-  }
-
-  const normalizedHash = normalizeBcryptHash(user.passwordHash);
-  if (!normalizedHash) {
+  const users = await userModel.findByEmailCandidates(payload.email);
+  if (!users.length) {
     throw new ApiError(401, 'Invalid credentials');
   }
 
   const passwordCandidates = [normalizedPassword];
+  let matchedUser = null;
 
-  let valid = false;
-  for (const candidate of passwordCandidates) {
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      valid = await bcrypt.compare(candidate, normalizedHash);
-      if (valid) break;
-    } catch {
-      // Corrupted/non-bcrypt hashes should not surface as 500.
-      throw new ApiError(401, 'Invalid credentials');
+  // Try against each normalized-email match; handles duplicate rows from imperfect migrations.
+  for (const user of users) {
+    if (!user || typeof user.passwordHash !== 'string') continue;
+    const normalizedHash = normalizeBcryptHash(user.passwordHash);
+    if (!normalizedHash) continue;
+
+    for (const candidate of passwordCandidates) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const valid = await bcrypt.compare(candidate, normalizedHash);
+        if (valid) {
+          matchedUser = user;
+          break;
+        }
+      } catch {
+        // Ignore invalid hash rows and keep trying other candidates.
+      }
+    }
+    if (matchedUser) {
+      break;
     }
   }
-  if (!valid) {
+  if (!matchedUser) {
     throw new ApiError(401, 'Invalid credentials');
   }
 
   const token = jwt.sign(
-    { sub: user.id, role: user.role, email: user.email, name: user.name },
+    {
+      sub: matchedUser.id,
+      role: matchedUser.role,
+      email: matchedUser.email,
+      name: matchedUser.name,
+    },
     env.jwtSecret,
     { expiresIn: env.jwtExpiresIn },
   );
 
   return {
     token,
-    user: { id: user.id, name: user.name, email: user.email, contactPhone: user.contactPhone, role: user.role },
+    user: {
+      id: matchedUser.id,
+      name: matchedUser.name,
+      email: matchedUser.email,
+      contactPhone: matchedUser.contactPhone,
+      role: matchedUser.role,
+    },
   };
 }
 
