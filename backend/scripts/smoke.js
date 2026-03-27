@@ -1,6 +1,5 @@
 const app = require('../app');
 const http = require('http');
-const pool = require('../config/db');
 const { makeRegisterPayload } = require('./testData');
 
 function fmt(name, status, note = '') {
@@ -49,114 +48,6 @@ function request(base, path, method = 'GET', body, token) {
 }
 
 async function run() {
-  try {
-    await pool.execute('ALTER TABLE projects ADD COLUMN submission_link VARCHAR(500) NULL');
-  } catch (error) {
-    if (error.code !== 'ER_DUP_FIELDNAME') throw error;
-  }
-
-  try {
-    await pool.execute('ALTER TABLE projects ADD COLUMN submission_files JSON NULL');
-  } catch (error) {
-    if (error.code !== 'ER_DUP_FIELDNAME') throw error;
-  }
-
-  await pool.execute(
-    `CREATE TABLE IF NOT EXISTS messages (
-      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      project_id BIGINT UNSIGNED NOT NULL,
-      sender_id BIGINT UNSIGNED NOT NULL,
-      message_text TEXT NOT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_messages_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-      CONSTRAINT fk_messages_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-      INDEX idx_messages_project_created (project_id, created_at),
-      INDEX idx_messages_sender (sender_id)
-    ) ENGINE=InnoDB`,
-  );
-  await pool.execute(
-    `CREATE TABLE IF NOT EXISTS notifications (
-      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      user_id BIGINT UNSIGNED NOT NULL,
-      project_id BIGINT UNSIGNED NULL,
-      type VARCHAR(50) NOT NULL,
-      title VARCHAR(140) NOT NULL,
-      message_text TEXT NOT NULL,
-      is_read TINYINT(1) NOT NULL DEFAULT 0,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      CONSTRAINT fk_notifications_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
-      INDEX idx_notifications_user_read_created (user_id, is_read, created_at),
-      INDEX idx_notifications_project (project_id)
-    ) ENGINE=InnoDB`,
-  );
-  await pool.execute(
-    `CREATE TABLE IF NOT EXISTS project_ratings (
-      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      project_id BIGINT UNSIGNED NOT NULL,
-      rater_id BIGINT UNSIGNED NOT NULL,
-      rated_user_id BIGINT UNSIGNED NOT NULL,
-      rating TINYINT UNSIGNED NOT NULL,
-      review_text TEXT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_ratings_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-      CONSTRAINT fk_ratings_rater FOREIGN KEY (rater_id) REFERENCES users(id) ON DELETE CASCADE,
-      CONSTRAINT fk_ratings_rated_user FOREIGN KEY (rated_user_id) REFERENCES users(id) ON DELETE CASCADE,
-      CONSTRAINT uq_project_rater UNIQUE (project_id, rater_id),
-      CONSTRAINT chk_rating_range CHECK (rating BETWEEN 1 AND 5),
-      INDEX idx_ratings_project (project_id),
-      INDEX idx_ratings_rated_user (rated_user_id)
-    ) ENGINE=InnoDB`,
-  );
-  await pool.execute(
-    `CREATE TABLE IF NOT EXISTS project_applications (
-      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      project_id BIGINT UNSIGNED NOT NULL,
-      freelancer_id BIGINT UNSIGNED NOT NULL,
-      cover_letter TEXT NULL,
-      status ENUM('Pending', 'Accepted', 'Rejected') NOT NULL DEFAULT 'Pending',
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      CONSTRAINT fk_project_applications_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-      CONSTRAINT fk_project_applications_freelancer FOREIGN KEY (freelancer_id) REFERENCES users(id) ON DELETE CASCADE,
-      CONSTRAINT uq_project_freelancer UNIQUE (project_id, freelancer_id),
-      INDEX idx_applications_project_status (project_id, status),
-      INDEX idx_applications_freelancer (freelancer_id)
-    ) ENGINE=InnoDB`,
-  );
-  await pool.execute(
-    `CREATE TABLE IF NOT EXISTS project_payments (
-      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      project_id BIGINT UNSIGNED NOT NULL,
-      amount DECIMAL(12,2) NOT NULL,
-      tip_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-      status ENUM('Unfunded', 'Funded', 'Released') NOT NULL DEFAULT 'Unfunded',
-      funded_at TIMESTAMP NULL,
-      released_at TIMESTAMP NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      CONSTRAINT uq_project_payments_project UNIQUE (project_id),
-      CONSTRAINT fk_project_payments_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-      INDEX idx_project_payments_status (status)
-    ) ENGINE=InnoDB`,
-  );
-  await pool.execute(
-    `CREATE TABLE IF NOT EXISTS project_payment_transactions (
-      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      payment_id BIGINT UNSIGNED NOT NULL,
-      project_id BIGINT UNSIGNED NOT NULL,
-      actor_user_id BIGINT UNSIGNED NULL,
-      type ENUM('Funded', 'Released', 'Tip') NOT NULL,
-      amount DECIMAL(12,2) NOT NULL,
-      note VARCHAR(255) NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_payment_tx_payment FOREIGN KEY (payment_id) REFERENCES project_payments(id) ON DELETE CASCADE,
-      CONSTRAINT fk_payment_tx_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-      CONSTRAINT fk_payment_tx_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
-      INDEX idx_payment_tx_project_created (project_id, created_at)
-    ) ENGINE=InnoDB`,
-  );
-
   const server = app.listen(5060, '127.0.0.1', async () => {
     const base = 'http://127.0.0.1:5060';
     const ts = Date.now();

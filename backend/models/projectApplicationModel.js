@@ -16,7 +16,8 @@ async function findByProjectAndFreelancer(projectId, freelancerId) {
 async function create({ projectId, freelancerId, coverLetter }) {
   const [result] = await pool.execute(
     `INSERT INTO project_applications (project_id, freelancer_id, cover_letter)
-     VALUES (?, ?, ?)`,
+     VALUES (?, ?, ?)
+     RETURNING id`,
     [projectId, freelancerId, coverLetter || null],
   );
 
@@ -51,13 +52,13 @@ async function listByProjectWithFreelancerProfile(projectId) {
      LEFT JOIN freelancer_profiles fp ON fp.user_id = pa.freelancer_id
      LEFT JOIN (
        SELECT rated_user_id,
-         ROUND(AVG(rating), 2) AS averageRating,
+         ROUND(AVG(rating)::numeric, 2) AS averageRating,
          COUNT(*) AS totalRatings,
-         SUM(rating = 5) AS rating5Count,
-         SUM(rating = 4) AS rating4Count,
-         SUM(rating = 3) AS rating3Count,
-         SUM(rating = 2) AS rating2Count,
-         SUM(rating = 1) AS rating1Count
+         COUNT(*) FILTER (WHERE rating = 5) AS rating5Count,
+         COUNT(*) FILTER (WHERE rating = 4) AS rating4Count,
+         COUNT(*) FILTER (WHERE rating = 3) AS rating3Count,
+         COUNT(*) FILTER (WHERE rating = 2) AS rating2Count,
+         COUNT(*) FILTER (WHERE rating = 1) AS rating1Count
        FROM project_ratings
        GROUP BY rated_user_id
      ) rs ON rs.rated_user_id = pa.freelancer_id

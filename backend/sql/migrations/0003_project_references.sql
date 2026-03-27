@@ -1,3 +1,2 @@
-ALTER TABLE projects
-  ADD COLUMN reference_link VARCHAR(500) NULL,
-  ADD COLUMN reference_files JSON NULL;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS reference_link VARCHAR(500);
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS reference_files JSONB;

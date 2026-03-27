@@ -1,0 +1,10 @@
+Render PostgreSQL cutover (maintenance window)
+
+1) Rotate Postgres password if it was ever shared; set DATABASE_URL on the Render web service only.
+2) Stop writes: disable old deploy or enable maintenance on the frontend.
+3) Final sync: run pgloader (see pgloader.example.load) or your chosen tool; verify counts (compare-table-counts.sql).
+4) On Render: set DATABASE_URL (internal URL preferred if web service and DB are both on Render).
+5) Run migrations: from repo backend folder, DATABASE_URL=... npm run migrate (or Render shell).
+6) Deploy backend; smoke: npm run smoke against staging or production URL.
+7) Vercel: set VITE_API_URL to the Render API URL; redeploy frontend if needed.
+8) Keep Railway MySQL read-only backup 24–48h; then decommission.

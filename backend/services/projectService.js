@@ -90,7 +90,7 @@ async function applyForProject(projectId, freelancerId, data) {
       coverLetter: payload.coverLetter,
     });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505' || error.code === 'ER_DUP_ENTRY') {
       throw new ApiError(409, 'You already applied to this project');
     }
     throw error;

@@ -1,0 +1,15 @@
+-- pgloader: MySQL (e.g. Railway) -> PostgreSQL (e.g. Render)
+-- Docs: https://pgloader.io/
+-- Replace SOURCE and TARGET with your URLs. Do not commit credentials.
+--
+-- pgloader may create its own table layout; align with this app by either:
+--   A) loading into a fresh DB and adjusting with pgloader casts/options, or
+--   B) running application migrations on an empty DB then using a data-only ETL.
+--
+-- Example (verify options against pgloader version you install):
+--
+-- LOAD DATABASE
+--      FROM mysql://USER:PASS@HOST:PORT/DBNAME
+--      INTO postgresql://USER:PASS@HOST:5432/DBNAME
+--   WITH data only
+-- ;

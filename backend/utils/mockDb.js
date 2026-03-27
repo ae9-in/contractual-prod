@@ -20,6 +20,12 @@ class MockPool {
     return this;
   }
 
+  async beginTransaction() {}
+
+  async commit() {}
+
+  async rollback() {}
+
   release() {}
 
   async query(sql, params = []) {

@@ -1,62 +1,52 @@
 /**
- * Run schema.sql against a target MySQL database.
+ * Apply PostgreSQL migrations (same as npm run migrate), then list public tables.
  *
  * Usage:
- *   DB_HOST=... DB_PORT=... DB_USER=... DB_PASSWORD=... DB_NAME=... node scripts/run-schema.js
+ *   DATABASE_URL=... node scripts/run-schema.js
+ *   or set DB_HOST, DB_USER, DB_NAME (optional DB_PASSWORD, DB_PORT=5432)
  */
-const fs = require('fs');
-const path = require('path');
-const mysql = require('mysql2/promise');
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
-function requireEnv(name) {
-  const value = String(process.env[name] || '').trim();
-  if (!value) {
-    throw new Error(`Missing required env var: ${name}`);
+const { execSync } = require('child_process');
+const path = require('path');
+const { Pool } = require('pg');
+
+function buildUrl() {
+  const direct = String(process.env.DATABASE_URL || '').trim();
+  if (direct) return direct;
+  const host = String(process.env.DB_HOST || '').trim();
+  const port = String(process.env.DB_PORT || '5432').trim();
+  const user = String(process.env.DB_USER || '').trim();
+  const password = String(process.env.DB_PASSWORD || '');
+  const database = String(process.env.DB_NAME || '').trim();
+  if (!host || !user || !database) {
+    throw new Error('Set DATABASE_URL or DB_HOST, DB_USER, DB_NAME');
   }
-  return value;
+  const passPart = password === '' ? '' : `:${encodeURIComponent(password)}`;
+  return `postgresql://${encodeURIComponent(user)}${passPart}@${host}:${port}/${encodeURIComponent(database)}`;
 }
 
 async function main() {
-  const config = {
-    host: requireEnv('DB_HOST'),
-    port: Number(process.env.DB_PORT || 3306),
-    user: requireEnv('DB_USER'),
-    password: requireEnv('DB_PASSWORD'),
-    database: requireEnv('DB_NAME'),
-    ssl: { rejectUnauthorized: false },
-    multipleStatements: true,
-  };
-
-  console.log(`Connecting to ${config.host}:${config.port} as ${config.user}...`);
-
-  const connection = await mysql.createConnection(config);
-  console.log('Connected.');
-
-  const schemaPath = path.join(__dirname, '..', 'sql', 'schema.sql');
-  const rawSQL = fs.readFileSync(schemaPath, 'utf8');
-
-  // Remove CREATE DATABASE/USE to avoid switching away from configured DB_NAME.
-  const lines = rawSQL.split('\n');
-  const filteredLines = lines.filter((line) => {
-    const trimmed = line.trim().toUpperCase();
-    if (trimmed.startsWith('CREATE DATABASE')) return false;
-    if (trimmed.startsWith('USE ')) return false;
-    return true;
+  const connectionString = buildUrl();
+  console.log('Applying migrations...');
+  execSync(`node "${path.join(__dirname, 'migrate.js')}"`, {
+    stdio: 'inherit',
+    env: { ...process.env, DATABASE_URL: connectionString },
   });
-  const sql = filteredLines.join('\n');
 
-  console.log('Running schema.sql...');
-  await connection.query(sql);
-  console.log('All tables created successfully.');
-
-  const [tables] = await connection.query('SHOW TABLES');
+  const useSsl = !connectionString.toLowerCase().includes('localhost');
+  const pool = new Pool({
+    connectionString,
+    ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+  });
+  const { rows } = await pool.query(
+    `SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename`,
+  );
   console.log('\nTables in database:');
-  tables.forEach((row, i) => {
-    const tableName = Object.values(row)[0];
-    console.log(`  ${i + 1}. ${tableName}`);
+  rows.forEach((row, i) => {
+    console.log(`  ${i + 1}. ${row.tablename}`);
   });
-
-  await connection.end();
+  await pool.end();
   console.log('\nDone.');
 }
 

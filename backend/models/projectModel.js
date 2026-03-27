@@ -3,6 +3,7 @@ const pool = require('../config/db');
 function parseFilesJson(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value;
+  if (typeof value === 'object') return [];
   if (typeof value === 'string') {
     try {
       const parsed = JSON.parse(value);
@@ -41,7 +42,8 @@ async function create({
   const [result] = await pool.execute(
     `INSERT INTO projects
       (business_id, title, description, budget, skills_required, deadline, reference_link, reference_files)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb)
+     RETURNING id`,
     [
       businessId,
       title,
@@ -56,7 +58,7 @@ async function create({
   await pool.execute(
     `INSERT INTO project_payments (project_id, amount, status)
      VALUES (?, ?, 'Unfunded')
-     ON DUPLICATE KEY UPDATE amount = VALUES(amount)`,
+     ON CONFLICT (project_id) DO UPDATE SET amount = EXCLUDED.amount`,
     [result.insertId, budget],
   );
   return findById(result.insertId);
@@ -67,7 +69,7 @@ async function findById(id, options = {}) {
   const includeApplicantFields = viewerRole === 'freelancer' && viewerId != null;
   const applicantSelect = includeApplicantFields
     ? `,
-      IF(vpa.id IS NULL, 0, 1) AS hasApplied,
+      CASE WHEN vpa.id IS NULL THEN 0 ELSE 1 END AS hasApplied,
       vpa.status AS applicationStatus`
     : ', 0 AS hasApplied, NULL AS applicationStatus';
   const [rows] = await pool.execute(
@@ -122,7 +124,7 @@ async function list({
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const applicantSelect = includeApplicantFields
     ? `,
-      IF(vpa.id IS NULL, 0, 1) AS hasApplied,
+      CASE WHEN vpa.id IS NULL THEN 0 ELSE 1 END AS hasApplied,
       vpa.status AS applicationStatus`
     : ', 0 AS hasApplied, NULL AS applicationStatus';
 
@@ -205,13 +207,16 @@ async function acceptProjectTx(projectId, freelancerId) {
 }
 
 async function submitProject(projectId, submissionText, submissionLink, submissionFiles) {
-  await pool.execute('UPDATE projects SET status = ?, submission_text = ?, submission_link = ?, submission_files = ? WHERE id = ?', [
-    'Submitted',
-    submissionText,
-    submissionLink || null,
-    JSON.stringify(submissionFiles || []),
-    projectId,
-  ]);
+  await pool.execute(
+    'UPDATE projects SET status = ?, submission_text = ?, submission_link = ?, submission_files = ?::jsonb WHERE id = ?',
+    [
+      'Submitted',
+      submissionText,
+      submissionLink || null,
+      JSON.stringify(submissionFiles || []),
+      projectId,
+    ],
+  );
   return findById(projectId);
 }
 
@@ -228,7 +233,7 @@ async function userMayAccessUploadedFile(filename, userId) {
   const [projectRows] = await pool.execute(
     `SELECT id FROM projects
      WHERE (business_id = ? OR freelancer_id = ?)
-     AND (submission_files LIKE ? OR reference_files LIKE ?)
+     AND (submission_files::text LIKE ? OR reference_files::text LIKE ?)
      LIMIT 1`,
     [userId, userId, like, like],
   );

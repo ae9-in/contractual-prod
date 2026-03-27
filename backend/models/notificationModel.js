@@ -2,7 +2,7 @@ const pool = require('../config/db');
 
 async function create({ userId, projectId = null, type, title, messageText }) {
   const [result] = await pool.execute(
-    'INSERT INTO notifications (user_id, project_id, type, title, message_text) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO notifications (user_id, project_id, type, title, message_text) VALUES (?, ?, ?, ?, ?) RETURNING id',
     [userId, projectId, type, title, messageText],
   );
   const [rows] = await pool.execute(
@@ -32,7 +32,7 @@ async function listByUser(userId, { limit = 100, offset = 0 } = {}) {
 
 async function countUnreadByUser(userId) {
   const [rows] = await pool.execute(
-    'SELECT COUNT(*) AS unreadCount FROM notifications WHERE user_id = ? AND is_read = 0',
+    'SELECT COUNT(*) AS unreadCount FROM notifications WHERE user_id = ? AND is_read = FALSE',
     [userId],
   );
   return Number(rows[0]?.unreadCount || 0);
@@ -50,19 +50,19 @@ async function findById(id) {
 }
 
 async function markRead(id) {
-  await pool.execute('UPDATE notifications SET is_read = 1 WHERE id = ?', [id]);
+  await pool.execute('UPDATE notifications SET is_read = TRUE WHERE id = ?', [id]);
   return findById(id);
 }
 
 async function markAllRead(userId) {
-  await pool.execute('UPDATE notifications SET is_read = 1 WHERE user_id = ?', [userId]);
+  await pool.execute('UPDATE notifications SET is_read = TRUE WHERE user_id = ?', [userId]);
 }
 
 async function countUnreadProjectMessagesByUser(userId) {
   const [rows] = await pool.execute(
     `SELECT project_id AS projectId, COUNT(*) AS unreadCount
      FROM notifications
-     WHERE user_id = ? AND is_read = 0 AND type = 'new_message' AND project_id IS NOT NULL
+     WHERE user_id = ? AND is_read = FALSE AND type = 'new_message' AND project_id IS NOT NULL
      GROUP BY project_id`,
     [userId],
   );

@@ -17,7 +17,7 @@ async function listByProject(projectId, { limit = 100 } = {}) {
 
 async function create({ projectId, senderId, messageText }) {
   const [result] = await pool.execute(
-    'INSERT INTO messages (project_id, sender_id, message_text) VALUES (?, ?, ?)',
+    'INSERT INTO messages (project_id, sender_id, message_text) VALUES (?, ?, ?) RETURNING id',
     [projectId, senderId, messageText],
   );
   const [rows] = await pool.execute(

@@ -26,7 +26,7 @@ async function findById(id) {
 
 async function create({ name, email, contactPhone, passwordHash, role }) {
   const [result] = await pool.execute(
-    'INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, ?) RETURNING id',
     [name, email, contactPhone, passwordHash, role],
   );
   return findById(result.insertId);

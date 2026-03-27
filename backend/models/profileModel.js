@@ -37,17 +37,17 @@ async function upsertByUserId(userId, profile) {
       contact_phone
     )
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-     skills = VALUES(skills),
-     bio = VALUES(bio),
-     portfolio_link = VALUES(portfolio_link),
-     experience_years = VALUES(experience_years),
-     profile_photo_url = VALUES(profile_photo_url),
-     organization_name = VALUES(organization_name),
-     organization_website = VALUES(organization_website),
-     organization_industry = VALUES(organization_industry),
-     contact_email = VALUES(contact_email),
-     contact_phone = VALUES(contact_phone)`,
+     ON CONFLICT (user_id) DO UPDATE SET
+     skills = EXCLUDED.skills,
+     bio = EXCLUDED.bio,
+     portfolio_link = EXCLUDED.portfolio_link,
+     experience_years = EXCLUDED.experience_years,
+     profile_photo_url = EXCLUDED.profile_photo_url,
+     organization_name = EXCLUDED.organization_name,
+     organization_website = EXCLUDED.organization_website,
+     organization_industry = EXCLUDED.organization_industry,
+     contact_email = EXCLUDED.contact_email,
+     contact_phone = EXCLUDED.contact_phone`,
     [
       userId,
       profile.skills,
@@ -81,7 +81,7 @@ async function updatePhotoByUserId(userId, profilePhotoUrl) {
       contact_phone
     )
     VALUES (?, '', '', '', 0, ?, '', '', '', '', '')
-    ON DUPLICATE KEY UPDATE profile_photo_url = VALUES(profile_photo_url)`,
+    ON CONFLICT (user_id) DO UPDATE SET profile_photo_url = EXCLUDED.profile_photo_url`,
     [userId, profilePhotoUrl],
   );
   return getByUserId(userId);

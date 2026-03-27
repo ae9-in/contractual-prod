@@ -15,7 +15,8 @@ async function findByProjectAndRater(projectId, raterId) {
 async function create({ projectId, raterId, ratedUserId, rating, reviewText }) {
   const [result] = await pool.execute(
     `INSERT INTO project_ratings (project_id, rater_id, rated_user_id, rating, review_text)
-     VALUES (?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?)
+     RETURNING id`,
     [projectId, raterId, ratedUserId, rating, reviewText || null],
   );
   const [rows] = await pool.execute(
@@ -50,7 +51,7 @@ async function getSummaryByUser(userId) {
   const [rows] = await pool.execute(
     `SELECT
       COUNT(*) AS totalRatings,
-      ROUND(AVG(rating), 2) AS averageRating
+      ROUND(AVG(rating)::numeric, 2) AS averageRating
      FROM project_ratings
      WHERE rated_user_id = ?`,
     [userId],

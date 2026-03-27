@@ -96,7 +96,7 @@ export default function RegisterPage() {
                 <input
                   id="name"
                   className="input"
-                  placeholder="Jeevan K."
+                  placeholder="Your Name"
                   style={{ paddingLeft: '52px' }}
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}

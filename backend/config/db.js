@@ -1,42 +1,58 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const env = require('./env');
+const { mysqlPlaceholdersToPg, shapeMysqlStyleResult } = require('../utils/pgQuery');
 
-const poolConfig = { ...env.db };
+const poolConfig = {
+  connectionString: env.databaseUrl,
+  max: env.dbPoolSize,
+};
 
-// Cloud MySQL providers (Aiven, PlanetScale, Railway) require SSL
-if (env.nodeEnv === 'production' || (env.db.host && env.db.host !== 'localhost')) {
-    poolConfig.ssl = { rejectUnauthorized: false };
+if (env.dbSsl) {
+  poolConfig.ssl = { rejectUnauthorized: false };
 }
 
 let pool;
 try {
-  pool = mysql.createPool(poolConfig);
-  console.log(`[DB] Using MySQL at ${env.db.host}:${env.db.port}`);
+  pool = new Pool(poolConfig);
+  const redacted = env.databaseUrl.replace(/:[^:@]+@/, ':****@');
+  console.log(`[DB] Using PostgreSQL (${redacted})`);
 
-  // Test connection at start as a senior developer
   pool.query('SELECT 1').catch((err) => {
-    console.warn(`[DB] MySQL connection check failed: ${err.message}`);
-    console.warn('[DB] Ensure your MySQL server is running and database exists.');
+    console.warn(`[DB] PostgreSQL connection check failed: ${err.message}`);
+    console.warn('[DB] Ensure the server is running, DATABASE_URL is correct, and migrations are applied.');
   });
 } catch (error) {
-  console.error('[DB] Critical error creating MySQL pool:', error.message);
+  console.error('[DB] Critical error creating PostgreSQL pool:', error.message);
 }
 
-/**
- * If the connection actually fails in the services, we can provide a final fallback.
- * For now, we'll wrap the pool.query to detect ECONNREFUSED and switch to mock.
- */
 const mockDb = require('../utils/mockDb');
 let useMock = false;
 
+function isUnreachableError(err) {
+  const code = err && err.code;
+  return (
+    code === 'ECONNREFUSED'
+    || code === 'ENOTFOUND'
+    || code === '28P01'
+    || code === '3D000'
+    || code === 'ETIMEDOUT'
+  );
+}
+
+async function runQuery(client, sql, params) {
+  const { text, values } = mysqlPlaceholdersToPg(sql, params);
+  const result = await client.query(text, values);
+  return shapeMysqlStyleResult(result);
+}
+
 const wrappedPool = {
-  async query(sql, params) {
+  async query(sql, params = []) {
     if (useMock) return mockDb.query(sql, params);
     try {
-      return await pool.query(sql, params);
+      return await runQuery(pool, sql, params);
     } catch (err) {
-      if (err.code === 'ECONNREFUSED' || err.code === 'ER_BAD_DB_ERROR' || err.code === 'ER_ACCESS_DENIED_ERROR') {
-        console.warn(`[DB] MySQL UNREACHABLE (${err.code}). Switching to IN-MEMORY MOCK DB...`);
+      if (isUnreachableError(err)) {
+        console.warn(`[DB] PostgreSQL UNREACHABLE (${err.code}). Switching to IN-MEMORY MOCK DB...`);
         useMock = true;
         return mockDb.query(sql, params);
       }
@@ -46,19 +62,43 @@ const wrappedPool = {
   async execute(sql, params) {
     return this.query(sql, params);
   },
-  async getConnection() {
+  async connect() {
     if (useMock) return mockDb;
     try {
-      return await pool.getConnection();
+      const client = await pool.connect();
+      return {
+        async query(sql, params = []) {
+          return runQuery(client, sql, params);
+        },
+        async execute(sql, params) {
+          return runQuery(client, sql, params);
+        },
+        async beginTransaction() {
+          await client.query('BEGIN');
+        },
+        async commit() {
+          await client.query('COMMIT');
+        },
+        async rollback() {
+          await client.query('ROLLBACK');
+        },
+        release: () => client.release(),
+      };
     } catch (err) {
-      console.warn(`[DB] Failed to get real connection (${err.code}). Fallback to mock.`);
-      useMock = true;
-      return mockDb;
+      if (isUnreachableError(err)) {
+        console.warn(`[DB] Failed to connect (${err.code}). Fallback to mock.`);
+        useMock = true;
+        return mockDb;
+      }
+      throw err;
     }
+  },
+  async getConnection() {
+    return this.connect();
   },
   async end() {
     if (pool) await pool.end();
-  }
+  },
 };
 
 module.exports = wrappedPool;

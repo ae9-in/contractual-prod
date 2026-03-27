@@ -55,7 +55,7 @@ async function createForProject(projectId, amount) {
   await pool.execute(
     `INSERT INTO project_payments (project_id, amount, status)
      VALUES (?, ?, 'Unfunded')
-     ON DUPLICATE KEY UPDATE amount = VALUES(amount)`,
+     ON CONFLICT (project_id) DO UPDATE SET amount = EXCLUDED.amount`,
     [projectId, amount],
   );
 }
@@ -106,7 +106,7 @@ async function fundEscrowTx(projectId, businessId) {
     await connection.execute(
       `INSERT INTO project_payments (project_id, amount, status)
        VALUES (?, ?, 'Unfunded')
-       ON DUPLICATE KEY UPDATE amount = VALUES(amount)`,
+       ON CONFLICT (project_id) DO UPDATE SET amount = EXCLUDED.amount`,
       [projectId, project.budget],
     );
 
