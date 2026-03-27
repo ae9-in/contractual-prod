@@ -7,7 +7,14 @@ async function findByEmail(email) {
 
 async function findByEmailCandidates(email) {
   const [rows] = await pool.execute(
-    `SELECT id, name, email, phone AS contactPhone, password_hash AS passwordHash, role, created_at AS createdAt
+    `SELECT
+      id,
+      name,
+      email,
+      phone AS "contactPhone",
+      password_hash AS "passwordHash",
+      role,
+      created_at AS "createdAt"
      FROM users
      WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))
      ORDER BY id DESC
@@ -19,7 +26,13 @@ async function findByEmailCandidates(email) {
 
 async function findByPhone(phone) {
   const [rows] = await pool.execute(
-    `SELECT id, name, email, phone AS contactPhone, role, created_at AS createdAt
+    `SELECT
+      id,
+      name,
+      email,
+      phone AS "contactPhone",
+      role,
+      created_at AS "createdAt"
      FROM users
      WHERE TRIM(COALESCE(phone, '')) = TRIM(COALESCE(?, ''))
      ORDER BY id DESC
@@ -31,7 +44,16 @@ async function findByPhone(phone) {
 
 async function findById(id) {
   const [rows] = await pool.execute(
-    'SELECT id, name, email, phone AS contactPhone, role, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
+    `SELECT
+      id,
+      name,
+      email,
+      phone AS "contactPhone",
+      role,
+      created_at AS "createdAt"
+     FROM users
+     WHERE id = ?
+     LIMIT 1`,
     [id],
   );
   return rows[0] || null;
