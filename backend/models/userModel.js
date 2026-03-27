@@ -2,7 +2,11 @@ const pool = require('../config/db');
 
 async function findByEmail(email) {
   const [rows] = await pool.execute(
-    'SELECT id, name, email, phone AS contactPhone, password_hash AS passwordHash, role, created_at AS createdAt FROM users WHERE email = ? LIMIT 1',
+    `SELECT id, name, email, phone AS contactPhone, password_hash AS passwordHash, role, created_at AS createdAt
+     FROM users
+     WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))
+     ORDER BY id DESC
+     LIMIT 1`,
     [email],
   );
   return rows[0] || null;
@@ -10,7 +14,11 @@ async function findByEmail(email) {
 
 async function findByPhone(phone) {
   const [rows] = await pool.execute(
-    'SELECT id, name, email, phone AS contactPhone, role, created_at AS createdAt FROM users WHERE phone = ? LIMIT 1',
+    `SELECT id, name, email, phone AS contactPhone, role, created_at AS createdAt
+     FROM users
+     WHERE TRIM(COALESCE(phone, '')) = TRIM(COALESCE(?, ''))
+     ORDER BY id DESC
+     LIMIT 1`,
     [phone],
   );
   return rows[0] || null;
