@@ -54,6 +54,7 @@ const wrappedPool = {
       if (isUnreachableError(err)) {
         console.warn(`[DB] PostgreSQL UNREACHABLE (${err.code}). Switching to IN-MEMORY MOCK DB...`);
         useMock = true;
+        mockDb.warnActivated();
         return mockDb.query(sql, params);
       }
       throw err;
@@ -88,6 +89,7 @@ const wrappedPool = {
       if (isUnreachableError(err)) {
         console.warn(`[DB] Failed to connect (${err.code}). Fallback to mock.`);
         useMock = true;
+        mockDb.warnActivated();
         return mockDb;
       }
       throw err;

@@ -13,6 +13,9 @@ class MockPool {
       project_payments: [],
     };
     this.nextId = 1;
+  }
+
+  warnActivated() {
     console.warn('[MOCK DB] Running in-memory fallback. Data will not persist after restart.');
   }
 

@@ -1,11 +1,31 @@
 const fs = require('fs');
 const path = require('path');
-const pool = require('../config/db');
+const { Client } = require('pg');
+const env = require('../config/env');
 
 const migrationsDir = path.join(__dirname, '..', 'sql', 'migrations');
 
+/**
+ * Migrations must use real PostgreSQL only — never the app pool’s mock fallback.
+ */
+function pgClientConfig() {
+  return {
+    connectionString: env.databaseUrl,
+    ssl: env.dbSsl ? { rejectUnauthorized: false } : undefined,
+  };
+}
+
 async function run() {
-  const client = await pool.connect();
+  const client = new Client(pgClientConfig());
+  try {
+    await client.connect();
+  } catch (err) {
+    console.error('migration failed: could not connect to PostgreSQL:', err.message);
+    console.error('[hint] On Render use the Internal DATABASE_URL for this shell; ensure ssl is allowed (DATABASE_SSL=1 if needed).');
+    process.exitCode = 1;
+    return;
+  }
+
   try {
     await client.query('BEGIN');
 
@@ -30,19 +50,22 @@ async function run() {
 
       const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
       await client.query(sql);
-      await client.query('INSERT INTO schema_migrations (filename) VALUES (?)', [file]);
+      await client.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [file]);
       console.log(`applied: ${file}`);
     }
 
     await client.query('COMMIT');
     console.log('migration complete');
   } catch (error) {
-    await client.query('ROLLBACK');
+    try {
+      await client.query('ROLLBACK');
+    } catch (_) {
+      /* ignore */
+    }
     console.error('migration failed:', error.message);
     process.exitCode = 1;
   } finally {
-    client.release();
-    await pool.end();
+    await client.end();
   }
 }
 
