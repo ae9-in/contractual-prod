@@ -37,6 +37,18 @@ import {
   setProjectTyping,
 } from '../services/realtimeService';
 
+function resolveBudget(project) {
+  if (!project) return 0;
+  const candidates = [project.budget, project.amount, project.projectBudget];
+  for (const candidate of candidates) {
+    if (candidate == null || candidate === '') continue;
+    const normalized = typeof candidate === 'string' ? candidate.replace(/[^0-9.-]/g, '') : candidate;
+    const numeric = Number(normalized);
+    if (!Number.isNaN(numeric)) return numeric;
+  }
+  return 0;
+}
+
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -562,7 +574,7 @@ export default function ProjectDetailPage() {
             <div className="detail-meta-grid" style={{ marginTop: '32px' }}>
               <div className="detail-meta-item" style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
                 <p className="detail-meta-label" style={{ margin: '0 0 4px', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Budget</p>
-                <p className="detail-meta-value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{formatINR(project.budget)}</p>
+                <p className="detail-meta-value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>{formatINR(resolveBudget(project))}</p>
               </div>
               <div className="detail-meta-item" style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
                 <p className="detail-meta-label" style={{ margin: '0 0 4px', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Deadline</p>

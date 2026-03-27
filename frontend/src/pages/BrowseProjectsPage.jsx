@@ -13,7 +13,7 @@ import {
   Clock,
   ArrowRight
 } from 'lucide-react';
-import { applyForProject, getProjects } from '../services/projectService';
+import { applyForProject, getProjectById, getProjects } from '../services/projectService';
 import { getProfile } from '../services/profileService';
 import { useToast } from '../hooks/useToast';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -39,6 +39,18 @@ function matchesAnySkill(projectSkillsRaw, preferredSkills) {
   return projectSkills.some((skill) => preferredSkills.includes(skill));
 }
 
+function resolveBudget(project) {
+  if (!project) return 0;
+  const candidates = [project.budget, project.amount, project.projectBudget];
+  for (const candidate of candidates) {
+    if (candidate == null || candidate === '') continue;
+    const normalized = typeof candidate === 'string' ? candidate.replace(/[^0-9.-]/g, '') : candidate;
+    const numeric = Number(normalized);
+    if (!Number.isNaN(numeric)) return numeric;
+  }
+  return 0;
+}
+
 export default function BrowseProjectsPage() {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -52,6 +64,7 @@ export default function BrowseProjectsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [applyingProjectId, setApplyingProjectId] = useState(null);
   const [resultMode, setResultMode] = useState('open');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
   const loadProjects = async () => {
     const params = { status: 'Open' };
@@ -99,24 +112,35 @@ export default function BrowseProjectsPage() {
     }
   };
 
-  useEffect(() => { loadProjects(); }, []);
   useEffect(() => {
     (async () => {
-      try {
-        const { data } = await getProfile();
-        setPreferredSkills(parseSkills(data.profile?.skills));
-      } catch {
-        setPreferredSkills([]);
-      }
+      await Promise.allSettled([
+        loadProjects(),
+        (async () => {
+          try {
+            const { data } = await getProfile();
+            setPreferredSkills(parseSkills(data.profile?.skills));
+          } catch {
+            setPreferredSkills([]);
+          }
+        })(),
+      ]);
     })();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const filteredProjects = useMemo(() => {
     let filtered = projects;
     if (usePreferences && preferredSkills.length) {
       filtered = filtered.filter((project) => matchesAnySkill(project.skillsRequired, preferredSkills));
     }
-    const query = String(searchTerm || '').trim().toLowerCase();
+    const query = String(debouncedSearchTerm || '').trim().toLowerCase();
     if (query) {
       filtered = filtered.filter((project) => {
         const haystack = [
@@ -131,7 +155,13 @@ export default function BrowseProjectsPage() {
       });
     }
     return filtered;
-  }, [projects, usePreferences, preferredSkills, searchTerm]);
+  }, [projects, usePreferences, preferredSkills, debouncedSearchTerm]);
+
+  useEffect(() => {
+    const topItems = filteredProjects.slice(0, 5);
+    if (!topItems.length) return;
+    Promise.allSettled(topItems.map((project) => getProjectById(project.id)));
+  }, [filteredProjects]);
 
   const togglePreferences = () => {
     setUsePreferences((prev) => {
@@ -320,7 +350,7 @@ export default function BrowseProjectsPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', padding: '20px', background: '#f8fafc', borderRadius: '20px', border: '1px solid #f1f5f9' }}>
                     <div>
                       <p style={{ margin: '0 0 4px', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Valuation</p>
-                      <p style={{ margin: 0, fontWeight: 900, color: '#10b981', fontSize: '1.2rem' }}>{formatINR(project.budget)}</p>
+                      <p style={{ margin: 0, fontWeight: 900, color: '#10b981', fontSize: '1.2rem' }}>{formatINR(resolveBudget(project))}</p>
                     </div>
                     <div>
                       <p style={{ margin: '0 0 4px', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Expiry</p>
