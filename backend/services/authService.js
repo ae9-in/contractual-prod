@@ -23,6 +23,12 @@ const forgotPasswordSchema = z.object({
   newPassword: z.string().min(8),
 });
 
+function normalizePassword(raw) {
+  if (typeof raw !== 'string') return '';
+  // Canonicalize unicode + trim accidental leading/trailing spaces.
+  return raw.normalize('NFKC').trim();
+}
+
 function normalizeBcryptHash(raw) {
   if (!raw || typeof raw !== 'string') return '';
   let hash = raw.trim();
@@ -40,6 +46,10 @@ function normalizeBcryptHash(raw) {
 
 async function register(data) {
   const payload = registerSchema.parse(data);
+  const normalizedPassword = normalizePassword(payload.password);
+  if (normalizedPassword.length < 8) {
+    throw new ApiError(400, 'Password must be at least 8 characters');
+  }
 
   const exists = await userModel.findByEmail(payload.email);
   if (exists) {
@@ -51,7 +61,7 @@ async function register(data) {
     throw new ApiError(409, 'Contact phone already exists');
   }
 
-  const passwordHash = await bcrypt.hash(payload.password, 10);
+  const passwordHash = await bcrypt.hash(normalizedPassword, 10);
   const user = await userModel.create({ ...payload, passwordHash });
 
   return user;
@@ -59,6 +69,10 @@ async function register(data) {
 
 async function login(data) {
   const payload = loginSchema.parse(data);
+  const normalizedPassword = normalizePassword(payload.password);
+  if (normalizedPassword.length < 8) {
+    throw new ApiError(401, 'Invalid credentials');
+  }
   const user = await userModel.findByEmail(payload.email);
 
   if (!user || !user.passwordHash || typeof user.passwordHash !== 'string') {
@@ -70,11 +84,7 @@ async function login(data) {
     throw new ApiError(401, 'Invalid credentials');
   }
 
-  const passwordCandidates = [payload.password];
-  const trimmed = payload.password.trim();
-  if (trimmed && trimmed !== payload.password) {
-    passwordCandidates.push(trimmed);
-  }
+  const passwordCandidates = [normalizedPassword];
 
   let valid = false;
   for (const candidate of passwordCandidates) {
@@ -105,7 +115,11 @@ async function login(data) {
 
 async function forgotPassword(data) {
   const payload = forgotPasswordSchema.parse(data);
-  const passwordHash = await bcrypt.hash(payload.newPassword, 10);
+  const normalizedNewPassword = normalizePassword(payload.newPassword);
+  if (normalizedNewPassword.length < 8) {
+    throw new ApiError(400, 'Password must be at least 8 characters');
+  }
+  const passwordHash = await bcrypt.hash(normalizedNewPassword, 10);
   await userModel.updatePasswordByEmailAndPhone(
     payload.email,
     payload.contactPhone,
