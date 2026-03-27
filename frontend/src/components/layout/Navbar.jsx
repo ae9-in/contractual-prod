@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { getNotifications } from '../../services/notificationService';
 import { getProfile } from '../../services/profileService';
 import { connectRealtime, onRealtime } from '../../services/realtimeService';
-import { getStoredToken } from '../../utils/authStorage';
+import { fetchProtectedAssetObjectUrl } from '../../utils/protectedAsset';
 import brandLogo from '../../assets/contractual-logo-exact.png';
 import Button from '../ui/Button';
 
@@ -44,11 +44,6 @@ export default function Navbar() {
       { to: '/freelancer/work', label: 'My Work', icon: Briefcase },
       { to: '/freelancer/profile', label: 'Profile', icon: ListTodo },
     ];
-
-  // Fix the icon for business/projects to be something different (ListTodo used above)
-  useEffect(() => {
-    // No-op, just cleaned up the roleLinks array directly
-  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -119,16 +114,28 @@ export default function Navbar() {
     };
   }, [isAuthenticated, user?.id, location.pathname]);
 
-  const apiOrigin = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const buildProtectedAssetUrl = (relativePath) => {
     const safePath = String(relativePath || '').trim();
     if (!safePath) return '';
     if (/^https?:\/\//i.test(safePath)) return safePath;
-    const token = getStoredToken();
-    if (!token) return `${apiOrigin}${safePath}`;
-    const separator = safePath.includes('?') ? '&' : '?';
-    return `${apiOrigin}${safePath}${separator}token=${encodeURIComponent(token)}`;
+    return safePath;
   };
+
+  useEffect(() => {
+    let objectUrl = '';
+    if (!profilePhotoUrl || /^https?:\/\//i.test(profilePhotoUrl) || String(profilePhotoUrl).startsWith('blob:')) return undefined;
+    (async () => {
+      try {
+        objectUrl = await fetchProtectedAssetObjectUrl(profilePhotoUrl);
+        if (objectUrl) setProfilePhotoUrl(objectUrl);
+      } catch {
+        // ignore transient fetch failures
+      }
+    })();
+    return () => {
+      if (objectUrl && objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl);
+    };
+  }, [profilePhotoUrl]);
 
   const onLogout = () => {
     logout();

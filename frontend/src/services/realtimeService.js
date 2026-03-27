@@ -3,7 +3,10 @@ import { getStoredToken } from '../utils/authStorage';
 
 let socket;
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL;
+if (!API_URL && import.meta.env.MODE === 'production') {
+  throw new Error('VITE_API_URL is required');
+}
 
 export function connectRealtime() {
   const token = getStoredToken();
@@ -19,7 +22,7 @@ export function connectRealtime() {
 
   socket = io(API_URL, {
     autoConnect: true,
-    transports: ['websocket', 'polling'],
+    transports: import.meta.env.MODE === 'production' ? ['websocket'] : ['websocket', 'polling'],
     auth: { token },
   });
 

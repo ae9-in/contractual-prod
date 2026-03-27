@@ -59,8 +59,8 @@ async function getProjectById(projectId, viewer = {}) {
   return project;
 }
 
-async function listBusinessProjects(businessId) {
-  return projectModel.listByBusiness(businessId);
+async function listBusinessProjects(businessId, options = {}) {
+  return projectModel.listByBusiness(businessId, options);
 }
 
 async function applyForProject(projectId, freelancerId, data) {
@@ -107,7 +107,7 @@ async function applyForProject(projectId, freelancerId, data) {
   return application;
 }
 
-async function listProjectApplications(projectId, businessId) {
+async function listProjectApplications(projectId, businessId, options = {}) {
   const project = await projectModel.findById(projectId);
   if (!project) {
     throw new ApiError(404, 'Project not found');
@@ -116,7 +116,7 @@ async function listProjectApplications(projectId, businessId) {
     throw new ApiError(403, 'Only project owner can view applications');
   }
 
-  return projectApplicationModel.listByProjectWithFreelancerProfile(projectId);
+  return projectApplicationModel.listByProjectWithFreelancerProfile(projectId, options);
 }
 
 async function acceptProjectApplication(projectId, applicationId, businessId) {

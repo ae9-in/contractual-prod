@@ -32,7 +32,9 @@ async function create({ projectId, freelancerId, coverLetter }) {
   return rows[0] || null;
 }
 
-async function listByProjectWithFreelancerProfile(projectId) {
+async function listByProjectWithFreelancerProfile(projectId, { limit = 20, offset = 0 } = {}) {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
+  const safeOffset = Math.max(0, Number(offset) || 0);
   const [rows] = await pool.execute(
     `SELECT pa.id, pa.project_id AS projectId, pa.freelancer_id AS freelancerId,
       pa.cover_letter AS coverLetter, pa.status, pa.created_at AS createdAt,
@@ -63,8 +65,9 @@ async function listByProjectWithFreelancerProfile(projectId) {
        GROUP BY rated_user_id
      ) rs ON rs.rated_user_id = pa.freelancer_id
      WHERE pa.project_id = ?
-     ORDER BY pa.created_at DESC, pa.id DESC`,
-    [projectId],
+     ORDER BY pa.created_at DESC, pa.id DESC
+     LIMIT ? OFFSET ?`,
+    [projectId, safeLimit, safeOffset],
   );
   return rows;
 }

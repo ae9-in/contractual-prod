@@ -32,6 +32,7 @@ export function AuthProvider({ children }) {
     setStoredAuth(data.token, data.user);
     setUser(data.user);
     connectRealtime();
+    return data.user;
   };
 
   const register = async (payload) => {

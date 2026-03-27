@@ -11,7 +11,7 @@ import Button from '../components/ui/Button';
 import SkillSelector from '../components/ui/SkillSelector';
 import { getApiErrorMessage, getApiFieldErrors } from '../utils/validation';
 import { useAuth } from '../hooks/useAuth';
-import { getStoredToken } from '../utils/authStorage';
+import { fetchProtectedAssetObjectUrl } from '../utils/protectedAsset';
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -42,72 +42,85 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
-  const apiOrigin = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const buildProtectedAssetUrl = (relativePath) => {
     const safePath = String(relativePath || '').trim();
     if (!safePath) return '';
     if (/^https?:\/\//i.test(safePath)) return safePath;
-    const token = getStoredToken();
-    if (!token) return `${apiOrigin}${safePath}`;
-    const separator = safePath.includes('?') ? '&' : '?';
-    return `${apiOrigin}${safePath}${separator}token=${encodeURIComponent(token)}`;
+    return safePath;
   };
 
   useEffect(() => {
+    let objectUrl = '';
+    if (!form.profilePhotoUrl || /^https?:\/\//i.test(form.profilePhotoUrl)) return undefined;
+    (async () => {
+      try {
+        objectUrl = await fetchProtectedAssetObjectUrl(form.profilePhotoUrl);
+        setPhotoPreview(objectUrl);
+      } catch {
+        // keep existing preview on transient failures
+      }
+    })();
+    return () => {
+      if (objectUrl && objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl);
+    };
+  }, [form.profilePhotoUrl]);
+
+  useEffect(() => {
+    if (!user?.id) return;
     (async () => {
       setIsLoading(true);
+      setError('');
       try {
-        const { data } = await getProfile();
-        const incomingProfile = data?.profile || {};
-        setForm((prev) => ({
-          ...prev,
-          ...incomingProfile,
-          contactEmail: String(incomingProfile.contactEmail || '').trim() || (isFreelancer ? (user?.email || '') : String(incomingProfile.contactEmail || '')),
-        }));
-      } catch (err) {
-        setError(err.response?.data?.error || 'Failed to load profile');
+        const projectPromise = isFreelancer
+          ? getProjects({ assignedToMe: true })
+          : isBusiness
+            ? getMyProjects()
+            : Promise.resolve({ data: { projects: [] } });
+        const [profileResult, ratingResult, projectsResult] = await Promise.allSettled([
+          getProfile(),
+          getUserRatingSummary(user.id),
+          projectPromise,
+        ]);
+
+        if (profileResult.status === 'fulfilled') {
+          const incomingProfile = profileResult.value?.data?.profile || {};
+          setForm((prev) => ({
+            ...prev,
+            ...incomingProfile,
+            contactEmail: String(incomingProfile.contactEmail || '').trim() || (isFreelancer ? (user?.email || '') : String(incomingProfile.contactEmail || '')),
+          }));
+        } else {
+          setError(profileResult.reason?.response?.data?.error || 'Failed to load profile');
+        }
+
+        if (ratingResult.status === 'fulfilled') {
+          setRatingSummary(ratingResult.value?.data?.summary || defaultSummary);
+        } else {
+          setRatingSummary(defaultSummary);
+        }
+
+        if (projectsResult.status === 'fulfilled') {
+          const projects = projectsResult.value?.data?.projects || [];
+          if (isFreelancer) {
+            const completed = projects.filter((p) => p.status === 'Completed').length;
+            const active = projects.filter((p) => ['Assigned', 'Submitted'].includes(p.status)).length;
+            setStats({ completed, active, total: projects.length });
+          } else if (isBusiness) {
+            const open = projects.filter((p) => p.status === 'Open').length;
+            const inProgress = projects.filter((p) => !['Open', 'Completed', 'Cancelled'].includes(p.status)).length;
+            const completed = projects.filter((p) => p.status === 'Completed').length;
+            setStats({ completed, active: open + inProgress, total: projects.length });
+          } else {
+            setStats({ completed: 0, active: 0, total: 0 });
+          }
+        } else {
+          setStats({ completed: 0, active: 0, total: 0 });
+        }
       } finally {
         setIsLoading(false);
       }
     })();
-  }, [isFreelancer, user?.email]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      try {
-        const { data } = await getUserRatingSummary(user.id);
-        setRatingSummary(data.summary || defaultSummary);
-      } catch {
-        setRatingSummary(defaultSummary);
-      }
-    })();
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      try {
-        let projects = [];
-        if (isFreelancer) {
-          const { data } = await getProjects({ assignedToMe: true });
-          projects = data.projects || [];
-          const completed = projects.filter(p => p.status === 'Completed').length;
-          const active = projects.filter(p => ['Assigned', 'Submitted'].includes(p.status)).length;
-          setStats({ completed, active, total: projects.length });
-        } else if (isBusiness) {
-          const { data } = await getMyProjects();
-          projects = data.projects || [];
-          const open = projects.filter(p => p.status === 'Open').length;
-          const inProgress = projects.filter(p => !['Open', 'Completed', 'Cancelled'].includes(p.status)).length;
-          const completed = projects.filter(p => p.status === 'Completed').length;
-          setStats({ completed, active: open + inProgress, total: projects.length });
-        }
-      } catch {
-        setStats({ completed: 0, active: 0, total: 0 });
-      }
-    })();
-  }, [user?.id, isFreelancer, isBusiness]);
+  }, [user?.id, user?.email, isFreelancer, isBusiness]);
 
   useEffect(() => {
     return () => {

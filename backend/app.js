@@ -1,6 +1,8 @@
 const express = require('express');
+const crypto = require('crypto');
 const compression = require('compression');
 const cors = require('cors');
+const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = rateLimit;
 const env = require('./config/env');
@@ -21,21 +23,46 @@ if (process.env.TRUST_PROXY === '1') {
   app.set('trust proxy', 1);
 }
 
-app.use(require('helmet')({
+app.use((req, _res, next) => {
+  req.id = req.headers['x-request-id'] || crypto.randomUUID();
+  next();
+});
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+      connectSrc: ["'self'", 'https:', 'wss:'],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
+  },
+  frameguard: { action: 'deny' },
+  hsts: { maxAge: 31536000, includeSubDomains: true },
+  referrerPolicy: { policy: 'no-referrer' },
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
-const corsOptions = env.nodeEnv === 'production'
-  ? {
-      origin: env.corsOrigins.length ? env.corsOrigins : false,
-      credentials: true,
-    }
-  : {
-      origin: true,
-      credentials: true,
-    };
+app.use((_req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+const allowedOrigins = env.corsOrigins;
+const corsOptions = {
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error('Origin not allowed by CORS'));
+  },
+  credentials: true,
+};
 app.use(cors(corsOptions));
 app.use(compression());
-app.use(require('morgan')('dev'));
+app.use(require('morgan')(env.nodeEnv !== 'production' ? 'dev' : 'combined'));
 app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), paymentController.handleGatewayWebhook);
 app.use(express.json());
 

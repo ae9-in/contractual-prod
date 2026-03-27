@@ -8,7 +8,7 @@ function readBearerToken(req) {
 }
 
 function assetAuthMiddleware(req, res, next) {
-  const token = readBearerToken(req) || String(req.query.token || '').trim();
+  const token = readBearerToken(req);
   if (!token) {
     return res.status(401).json({ error: 'Unauthorized' });
   }

@@ -32,7 +32,9 @@ async function create({ projectId, raterId, ratedUserId, rating, reviewText }) {
   return rows[0] || null;
 }
 
-async function listByProject(projectId) {
+async function listByProject(projectId, { limit = 20, offset = 0 } = {}) {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
+  const safeOffset = Math.max(0, Number(offset) || 0);
   const [rows] = await pool.execute(
     `SELECT pr.id, pr.project_id AS projectId, pr.rater_id AS raterId, pr.rated_user_id AS ratedUserId,
       pr.rating, pr.review_text AS reviewText, pr.created_at AS createdAt,
@@ -41,8 +43,9 @@ async function listByProject(projectId) {
      INNER JOIN users ru ON ru.id = pr.rater_id
      INNER JOIN users tu ON tu.id = pr.rated_user_id
      WHERE pr.project_id = ?
-     ORDER BY pr.created_at DESC, pr.id DESC`,
-    [projectId],
+     ORDER BY pr.created_at DESC, pr.id DESC
+     LIMIT ? OFFSET ?`,
+    [projectId, safeLimit, safeOffset],
   );
   return rows;
 }

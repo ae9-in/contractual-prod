@@ -5,6 +5,7 @@ import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Loader from './components/ui/Loader';
+import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './routes/ProtectedRoute';
 import RoleRoute from './routes/RoleRoute';
 import { useAuth } from './hooks/useAuth';
@@ -78,14 +79,16 @@ function AnimatedRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <div className="app-shell" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: 0 }}>
-        <Navbar />
-        <main className="app-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
-          <AnimatedRoutes />
-        </main>
-        <Footer />
-      </div>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <div className="app-shell" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: 0 }}>
+          <Navbar />
+          <main className="app-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
+            <AnimatedRoutes />
+          </main>
+          <Footer />
+        </div>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

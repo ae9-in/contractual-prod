@@ -4,15 +4,14 @@ const userModel = require('../models/userModel');
 const ApiError = require('../utils/ApiError');
 
 /**
- * Same as authMiddleware but also accepts ?token= for <img src> and other non-AJAX requests.
+ * File auth must use Authorization header only.
  */
 async function fileAuthMiddleware(req, res, next) {
   const bearer =
     req.headers.authorization && req.headers.authorization.startsWith('Bearer ')
       ? req.headers.authorization.slice(7)
       : '';
-  const qToken = String(req.query.token || '').trim();
-  const token = bearer || qToken;
+  const token = bearer;
   if (!token) {
     return next(new ApiError(401, 'Unauthorized'));
   }

@@ -61,16 +61,24 @@ function initRealtime(server) {
 
   io.on('connection', (socket) => {
     socket.join(`user:${socket.user.id}`);
+    socket.on('error', (error) => {
+      console.error('[SOCKET_ERROR]', error?.message || 'unknown');
+    });
 
     socket.on('project:join', async (projectId, ack) => {
-      const allowed = await canJoinProject(projectId, socket.user.id);
-      if (!allowed) {
-        if (typeof ack === 'function') ack({ ok: false, error: 'Forbidden' });
-        return;
-      }
+      try {
+        const allowed = await canJoinProject(projectId, socket.user.id);
+        if (!allowed) {
+          if (typeof ack === 'function') ack({ ok: false, error: 'Forbidden' });
+          return;
+        }
 
-      socket.join(`project:${Number(projectId)}`);
-      if (typeof ack === 'function') ack({ ok: true });
+        socket.join(`project:${Number(projectId)}`);
+        if (typeof ack === 'function') ack({ ok: true });
+      } catch (error) {
+        console.error('[SOCKET_JOIN_ERROR]', error?.message || 'unknown');
+        if (typeof ack === 'function') ack({ ok: false, error: 'Join failed' });
+      }
     });
 
     socket.on('project:leave', (projectId) => {
@@ -78,19 +86,23 @@ function initRealtime(server) {
     });
 
     socket.on('project:typing', async (payload) => {
-      const projectId = Number(payload?.projectId);
-      const isTyping = Boolean(payload?.isTyping);
-      if (!projectId) return;
+      try {
+        const projectId = Number(payload?.projectId);
+        const isTyping = Boolean(payload?.isTyping);
+        if (!projectId) return;
 
-      const allowed = await canJoinProject(projectId, socket.user.id);
-      if (!allowed) return;
+        const allowed = await canJoinProject(projectId, socket.user.id);
+        if (!allowed) return;
 
-      socket.to(`project:${projectId}`).emit('project:typing', {
-        projectId,
-        userId: socket.user.id,
-        userName: socket.user.name,
-        isTyping,
-      });
+        socket.to(`project:${projectId}`).emit('project:typing', {
+          projectId,
+          userId: socket.user.id,
+          userName: socket.user.name,
+          isTyping,
+        });
+      } catch (error) {
+        console.error('[SOCKET_TYPING_ERROR]', error?.message || 'unknown');
+      }
     });
   });
 

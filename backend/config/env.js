@@ -35,13 +35,18 @@ const databaseUrl = buildDatabaseUrl();
 const env = {
   port: Number(readEnv('PORT', '5000') || 5000),
   nodeEnv: readEnv('NODE_ENV', 'development'),
-  corsOrigins: readEnv('CORS_ORIGIN', '')
+  corsOrigins: readEnv('ALLOWED_ORIGINS', readEnv('CORS_ORIGIN', ''))
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
   databaseUrl,
   dbSsl: inferSsl(databaseUrl || 'postgresql://localhost:5432/postgres'),
-  dbPoolSize: Number(readEnv('DB_POOL_SIZE', '10') || 10),
+  dbPoolSize: Number(readEnv('DB_POOL_SIZE', '20') || 20),
+  dbPoolMin: Number(readEnv('DB_POOL_MIN', '2') || 2),
+  dbIdleTimeoutMs: Number(readEnv('DB_IDLE_TIMEOUT_MS', '30000') || 30000),
+  dbConnectionTimeoutMs: Number(readEnv('DB_CONNECTION_TIMEOUT_MS', '10000') || 10000),
+  dbQueryTimeoutMs: Number(readEnv('DB_QUERY_TIMEOUT_MS', '6000') || 6000),
+  allowDbMockFallback: readEnv('ALLOW_DB_MOCK_FALLBACK', '').toLowerCase() === 'true',
   jwtSecret: readEnv('JWT_SECRET'),
   jwtExpiresIn: readEnv('JWT_EXPIRES_IN', '7d'),
   paymentProvider: readEnv('PAYMENT_PROVIDER', 'razorpay').toLowerCase(),
@@ -56,6 +61,13 @@ const env = {
     apiSecret: readEnv('CLOUDINARY_API_SECRET'),
     folder: readEnv('CLOUDINARY_FOLDER', 'contractual'),
   },
+  mail: {
+    host: readEnv('SMTP_HOST'),
+    port: Number(readEnv('SMTP_PORT', '587') || 587),
+    user: readEnv('SMTP_USER'),
+    pass: readEnv('SMTP_PASS'),
+    from: readEnv('SMTP_FROM'),
+  },
 };
 
 const required = ['JWT_SECRET'];
@@ -69,6 +81,11 @@ if (!env.databaseUrl) {
   throw new Error(
     'Missing database URL: set DATABASE_URL (Render/Vercel) or DB_HOST, DB_USER, DB_NAME (optional DB_PASSWORD, DB_PORT defaults to 5432)',
   );
+}
+
+const weakSecrets = new Set(['secret', 'jwt_secret', 'changeme', 'password', 'default']);
+if (env.nodeEnv !== 'test' && (env.jwtSecret.length < 32 || weakSecrets.has(env.jwtSecret.toLowerCase()))) {
+  throw new Error('JWT_SECRET is too weak. Use at least 32 chars and avoid common defaults.');
 }
 
 const dbUrlLower = env.databaseUrl.toLowerCase();

@@ -15,17 +15,24 @@ async function create({ userId, projectId = null, type, title, messageText }) {
   return rows[0] || null;
 }
 
-async function listByUser(userId, { limit = 100, offset = 0 } = {}) {
+async function listByUser(userId, { limit = 100, offset = 0, before = null } = {}) {
   const safeLimit = Math.max(1, Math.min(Number(limit) || 100, 200));
   const safeOffset = Math.max(0, Number(offset) || 0);
+  const cursorWhere = before
+    ? 'AND (created_at < ?::timestamptz OR (created_at = ?::timestamptz AND id < ?))'
+    : '';
+  const cursorParams = before
+    ? [before.createdAtIso, before.createdAtIso, before.id]
+    : [];
   const [rows] = await pool.execute(
     `SELECT id, user_id AS userId, project_id AS projectId, type, title,
       message_text AS messageText, is_read AS isRead, created_at AS createdAt
      FROM notifications
      WHERE user_id = ?
+     ${cursorWhere}
      ORDER BY created_at DESC, id DESC
      LIMIT ? OFFSET ?`,
-    [userId, safeLimit, safeOffset],
+    [userId, ...cursorParams, safeLimit, safeOffset],
   );
   return rows;
 }

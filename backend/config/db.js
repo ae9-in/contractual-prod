@@ -5,21 +5,35 @@ const { mysqlPlaceholdersToPg, shapeMysqlStyleResult } = require('../utils/pgQue
 const poolConfig = {
   connectionString: env.databaseUrl,
   max: env.dbPoolSize,
+  min: env.dbPoolMin,
+  idleTimeoutMillis: env.dbIdleTimeoutMs,
+  connectionTimeoutMillis: env.dbConnectionTimeoutMs,
+  query_timeout: env.dbQueryTimeoutMs,
+  statement_timeout: env.dbQueryTimeoutMs,
 };
 
 if (env.dbSsl) {
   poolConfig.ssl = { rejectUnauthorized: false };
 }
 
+const allowMockFallback = Boolean(env.allowDbMockFallback);
 let pool;
 try {
   pool = new Pool(poolConfig);
-  const redacted = env.databaseUrl.replace(/:[^:@]+@/, ':****@');
-  console.log(`[DB] Using PostgreSQL (${redacted})`);
+  if (env.nodeEnv !== 'production') {
+    const redacted = env.databaseUrl.replace(/:[^:@]+@/, ':****@');
+    console.log(`[DB] Using PostgreSQL (${redacted})`);
+  } else {
+    console.log('[DB] Database connected');
+  }
 
   pool.query('SELECT 1').catch((err) => {
     console.warn(`[DB] PostgreSQL connection check failed: ${err.message}`);
     console.warn('[DB] Ensure the server is running, DATABASE_URL is correct, and migrations are applied.');
+    if (!allowMockFallback && env.nodeEnv !== 'test') {
+      console.error('[DB] Unreachable database and mock fallback disabled. Exiting process.');
+      process.exit(1);
+    }
   });
 } catch (error) {
   console.error('[DB] Critical error creating PostgreSQL pool:', error.message);
@@ -27,7 +41,6 @@ try {
 
 const mockDb = require('../utils/mockDb');
 let useMock = false;
-const allowMockFallback = env.nodeEnv !== 'production';
 
 function isUnreachableError(err) {
   const code = err && err.code;

@@ -5,7 +5,18 @@ const ApiError = require('../utils/ApiError');
  * Global Express error handler — log server-side only; never expose stack, schema paths, or DB internals.
  */
 function errorHandler(err, req, res, next) {
-  console.error('[ERROR]', err);
+  const logPayload = {
+    requestId: req?.id || 'unknown',
+    message: err?.message || 'Unknown error',
+    code: err?.code || err?.statusCode || 'ERR_UNKNOWN',
+    status: err?.statusCode || 500,
+    at: new Date().toISOString(),
+  };
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('[ERROR]', logPayload, err?.stack || '');
+  } else {
+    console.error('[ERROR]', logPayload);
+  }
 
   if (err instanceof ZodError || (err && err.name === 'ZodError')) {
     return res.status(400).json({

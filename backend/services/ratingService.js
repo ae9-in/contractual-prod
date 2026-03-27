@@ -18,14 +18,14 @@ function assertParticipant(project, userId) {
   }
 }
 
-async function listProjectRatings(projectId, userId) {
+async function listProjectRatings(projectId, userId, options = {}) {
   const project = await projectModel.findById(projectId);
   if (!project) {
     throw new ApiError(404, 'Project not found');
   }
 
   assertParticipant(project, userId);
-  return ratingModel.listByProject(projectId);
+  return ratingModel.listByProject(projectId, options);
 }
 
 async function submitProjectRating(projectId, userId, data) {
