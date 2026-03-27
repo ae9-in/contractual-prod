@@ -77,13 +77,14 @@ async function register(data, meta = {}) {
 
   const exists = await userModel.findByEmail(payload.email);
   if (exists) {
-    securityLog('register_failure', {
+    securityLog('register_existing_account', {
       identifier: anonymizeIdentifier(payload.email),
-      reason: 'email_exists',
+      reason: 'email_exists_idempotent_success',
       ip: meta.ip,
       requestId: meta.requestId,
     });
-    throw new ApiError(409, 'Registration could not be completed. Please check your details.');
+    // Idempotent success: avoid repeated conflict loops for already-registered users.
+    return exists;
   }
 
   const passwordHash = await bcrypt.hash(normalizedPassword, 10);
@@ -93,13 +94,14 @@ async function register(data, meta = {}) {
   } catch (error) {
     // Handle race conditions where another request created the same email.
     if (error?.code === '23505' || error?.code === 'ER_DUP_ENTRY') {
-      securityLog('register_failure', {
+      securityLog('register_existing_account', {
         identifier: anonymizeIdentifier(payload.email),
-        reason: 'email_exists_race',
+        reason: 'email_exists_race_idempotent_success',
         ip: meta.ip,
         requestId: meta.requestId,
       });
-      throw new ApiError(409, 'Registration could not be completed. Please check your details.');
+      const existingUser = await userModel.findByEmail(payload.email);
+      if (existingUser) return existingUser;
     }
     throw error;
   }
