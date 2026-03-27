@@ -74,7 +74,7 @@ async function findById(id, options = {}) {
     : ', 0 AS hasApplied, NULL AS applicationStatus';
   const [rows] = await pool.execute(
     `SELECT p.id, p.business_id AS "businessId", p.title, p.description,
-      COALESCE(p.budget, pp.amount) AS budget,
+      COALESCE(p.budget, pp.amount, 0) AS budget,
       p.skills_required AS "skillsRequired", p.deadline, p.status, p.freelancer_id AS "freelancerId",
       p.reference_link AS "referenceLink", p.reference_files AS "referenceFiles",
       p.submission_text AS "submissionText", p.submission_link AS "submissionLink",
@@ -138,7 +138,7 @@ async function list({
     : [...params, safeLimit, offset];
   const [rows] = await pool.execute(
     `SELECT p.id, p.business_id AS "businessId", p.title, p.description,
-      COALESCE(p.budget, pp.amount) AS budget,
+      COALESCE(p.budget, pp.amount, 0) AS budget,
       p.skills_required AS "skillsRequired", p.deadline, p.status, p.freelancer_id AS "freelancerId",
       p.reference_link AS "referenceLink", p.reference_files AS "referenceFiles",
       p.submission_text AS "submissionText", p.submission_link AS "submissionLink",
@@ -166,7 +166,7 @@ async function listByBusiness(businessId, { limit = 20, offset = 0 } = {}) {
   const safeOffset = Math.max(0, Number(offset) || 0);
   const [rows] = await pool.execute(
     `SELECT p.id, p.business_id AS "businessId", p.title, p.description,
-      COALESCE(p.budget, pp.amount) AS budget,
+      COALESCE(p.budget, pp.amount, 0) AS budget,
       skills_required AS "skillsRequired", deadline, status, freelancer_id AS "freelancerId",
       reference_link AS "referenceLink", reference_files AS "referenceFiles",
       submission_text AS "submissionText", submission_link AS "submissionLink",

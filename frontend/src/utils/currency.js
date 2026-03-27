@@ -6,7 +6,10 @@ const inrFormatter = new Intl.NumberFormat('en-IN', {
 
 export function formatINR(value) {
   if (value == null || value === '') return '—';
-  const amount = Number(value);
+  const normalized = typeof value === 'string'
+    ? value.replace(/[^0-9.-]/g, '')
+    : value;
+  const amount = Number(normalized);
   if (Number.isNaN(amount)) return '—';
   return inrFormatter.format(amount);
 }
