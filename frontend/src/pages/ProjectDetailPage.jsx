@@ -5,6 +5,7 @@ import {
   applyForProject,
   completeProject,
   createProjectPaymentOrder,
+  getMyProjects,
   getProjectApplications,
   getProjectById,
   getProjectPayment,
@@ -27,7 +28,7 @@ import { formatDateOnly } from '../utils/date';
 import { getPaymentGatewayConfig } from '../services/paymentService';
 import { loadRazorpayCheckoutScript } from '../utils/paymentGateway';
 import { getApiErrorMessage, getApiFieldErrors } from '../utils/validation';
-import { getStoredToken } from '../utils/authStorage';
+import api from '../services/api';
 import {
   connectRealtime,
   joinProjectRoom,
@@ -102,7 +103,7 @@ export default function ProjectDetailPage() {
     user?.role === 'business' && project?.status === 'Submitted' && payment?.status === 'Released',
   );
   const canAddTip = Boolean(user?.role === 'business' && payment && payment.status !== 'Unfunded');
-  const apiOrigin = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const apiOrigin = import.meta.env.VITE_API_URL || '';
   const ratingSummary = useMemo(() => {
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     let total = 0;
@@ -125,19 +126,60 @@ export default function ProjectDetailPage() {
   }, [ratings, project?.freelancerId]);
 
   const buildProtectedFileUrl = (relativePath) => {
-    const token = getStoredToken();
-    if (!token) return `${apiOrigin}${relativePath}`;
-    const separator = String(relativePath).includes('?') ? '&' : '?';
-    return `${apiOrigin}${relativePath}${separator}token=${encodeURIComponent(token)}`;
+    return `${apiOrigin}${relativePath}`;
+  };
+
+  const openProtectedFile = async (relativePath, filename) => {
+    const safePath = String(relativePath || '').trim();
+    if (!safePath) return;
+    if (/^https?:\/\//i.test(safePath)) {
+      window.open(safePath, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    const { data } = await api.get(safePath.replace(/^\/api/, ''), { responseType: 'blob' });
+    const blobUrl = URL.createObjectURL(data);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename || 'attachment';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
   };
 
   const loadProject = async () => {
     try {
       setIsLoading(true);
       const { data } = await getProjectById(id);
-      setProject(data.project);
-      setSubmissionText(data.project?.submissionText || '');
-      setSubmissionLink(data.project?.submissionLink || '');
+      let normalizedProject = data.project || null;
+
+      // Defensive fallback: if detail payload misses budget for business users,
+      // hydrate it from /projects/mine so Manage view still shows correct amount.
+      if (
+        user?.role === 'business' &&
+        normalizedProject &&
+        (normalizedProject.budget == null || normalizedProject.budget === '')
+      ) {
+        try {
+          const mine = await getMyProjects();
+          const ownProject = (mine?.data?.projects || []).find(
+            (item) => Number(item?.id) === Number(id),
+          );
+          if (ownProject) {
+            normalizedProject = {
+              ...normalizedProject,
+              budget: ownProject.budget,
+            };
+          }
+        } catch {
+          // Keep original detail payload when fallback fetch fails.
+        }
+      }
+
+      setProject(normalizedProject);
+      setSubmissionText(normalizedProject?.submissionText || '');
+      setSubmissionLink(normalizedProject?.submissionLink || '');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load project details');
     } finally {
@@ -145,7 +187,7 @@ export default function ProjectDetailPage() {
     }
   };
 
-  useEffect(() => { loadProject(); }, [id]);
+  useEffect(() => { loadProject(); }, [id, user?.role]);
 
   const loadApplications = async () => {
     if (!project?.id || user?.role !== 'business') return;
@@ -161,10 +203,14 @@ export default function ProjectDetailPage() {
   };
 
   useEffect(() => {
-    if (user?.role === 'business' && project?.status === 'Open') {
+    if (
+      user?.role === 'business' &&
+      project?.status === 'Open' &&
+      Number(project?.businessId) === Number(user?.id)
+    ) {
       loadApplications();
     }
-  }, [project?.id, project?.status, user?.role]);
+  }, [project?.id, project?.status, project?.businessId, user?.id, user?.role]);
 
   const loadPayment = async () => {
     if (!project?.id || !canViewPayment) return;
@@ -573,9 +619,14 @@ export default function ProjectDetailPage() {
                 {(project.referenceFiles || []).length > 0 && (
                   <div className="stack" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                     {(project.referenceFiles || []).map((file) => (
-                      <a key={file.url} href={buildProtectedFileUrl(file.url)} target="_blank" rel="noreferrer" style={{ padding: '8px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#4f46e5', fontWeight: 600, textDecoration: 'none', fontSize: '0.9rem' }}>
+                      <button
+                        key={file.url}
+                        type="button"
+                        onClick={() => openProtectedFile(file.url, file.originalName || file.name || 'Attachment')}
+                        style={{ padding: '8px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#4f46e5', fontWeight: 600, textDecoration: 'none', fontSize: '0.9rem', cursor: 'pointer' }}
+                      >
                         {file.originalName || file.name || 'Attachment'}
-                      </a>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -597,11 +648,10 @@ export default function ProjectDetailPage() {
                 {(project.submissionFiles || []).length > 0 && (
                   <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                     {(project.submissionFiles || []).map((file) => (
-                      <a
+                      <button
                         key={file.url}
-                        href={buildProtectedFileUrl(file.url)}
-                        target="_blank"
-                        rel="noreferrer"
+                        type="button"
+                        onClick={() => openProtectedFile(file.url, file.originalName || file.name || 'Attachment')}
                         style={{
                           padding: '8px 14px',
                           background: '#fff',
@@ -609,12 +659,12 @@ export default function ProjectDetailPage() {
                           borderRadius: '10px',
                           color: '#047857',
                           fontWeight: 700,
-                          textDecoration: 'none',
                           fontSize: '0.86rem',
+                          cursor: 'pointer',
                         }}
                       >
                         {file.originalName || file.name || 'Attachment'}
-                      </a>
+                      </button>
                     ))}
                   </div>
                 )}

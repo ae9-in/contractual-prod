@@ -73,14 +73,14 @@ async function findById(id, options = {}) {
       vpa.status AS applicationStatus`
     : ', 0 AS hasApplied, NULL AS applicationStatus';
   const [rows] = await pool.execute(
-    `SELECT p.id, p.business_id AS businessId, p.title, p.description, p.budget,
-      p.skills_required AS skillsRequired, p.deadline, p.status, p.freelancer_id AS freelancerId,
-      p.reference_link AS referenceLink, p.reference_files AS referenceFiles,
-      p.submission_text AS submissionText, p.submission_link AS submissionLink,
-      p.submission_files AS submissionFiles, p.created_at AS createdAt, u.name AS businessName,
-      fu.name AS freelancerName,
-      COALESCE(NULLIF(TRIM(fp.contact_email), ''), fu.email) AS freelancerContactEmail,
-      COALESCE(NULLIF(TRIM(fp.contact_phone), ''), fu.phone) AS freelancerContactPhone
+    `SELECT p.id, p.business_id AS "businessId", p.title, p.description, p.budget,
+      p.skills_required AS "skillsRequired", p.deadline, p.status, p.freelancer_id AS "freelancerId",
+      p.reference_link AS "referenceLink", p.reference_files AS "referenceFiles",
+      p.submission_text AS "submissionText", p.submission_link AS "submissionLink",
+      p.submission_files AS "submissionFiles", p.created_at AS "createdAt", u.name AS "businessName",
+      fu.name AS "freelancerName",
+      COALESCE(NULLIF(TRIM(fp.contact_email), ''), fu.email) AS "freelancerContactEmail",
+      COALESCE(NULLIF(TRIM(fp.contact_phone), ''), fu.phone) AS "freelancerContactPhone"
       ${applicantSelect}
      FROM projects p
      INNER JOIN users u ON u.id = p.business_id
@@ -124,9 +124,9 @@ async function list({
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const applicantSelect = includeApplicantFields
     ? `,
-      CASE WHEN vpa.id IS NULL THEN 0 ELSE 1 END AS hasApplied,
-      vpa.status AS applicationStatus`
-    : ', 0 AS hasApplied, NULL AS applicationStatus';
+      CASE WHEN vpa.id IS NULL THEN 0 ELSE 1 END AS "hasApplied",
+      vpa.status AS "applicationStatus"`
+    : ', 0 AS "hasApplied", NULL AS "applicationStatus"';
 
   const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 100));
   const safePage = Math.max(1, Number(page) || 1);
@@ -135,14 +135,14 @@ async function list({
     ? [viewerId, ...params, safeLimit, offset]
     : [...params, safeLimit, offset];
   const [rows] = await pool.execute(
-    `SELECT p.id, p.business_id AS businessId, p.title, p.description, p.budget,
-      p.skills_required AS skillsRequired, p.deadline, p.status, p.freelancer_id AS freelancerId,
-      p.reference_link AS referenceLink, p.reference_files AS referenceFiles,
-      p.submission_text AS submissionText, p.submission_link AS submissionLink,
-      p.submission_files AS submissionFiles, p.created_at AS createdAt, u.name AS businessName,
-      fu.name AS freelancerName,
-      COALESCE(NULLIF(TRIM(fp.contact_email), ''), fu.email) AS freelancerContactEmail,
-      COALESCE(NULLIF(TRIM(fp.contact_phone), ''), fu.phone) AS freelancerContactPhone
+    `SELECT p.id, p.business_id AS "businessId", p.title, p.description, p.budget,
+      p.skills_required AS "skillsRequired", p.deadline, p.status, p.freelancer_id AS "freelancerId",
+      p.reference_link AS "referenceLink", p.reference_files AS "referenceFiles",
+      p.submission_text AS "submissionText", p.submission_link AS "submissionLink",
+      p.submission_files AS "submissionFiles", p.created_at AS "createdAt", u.name AS "businessName",
+      fu.name AS "freelancerName",
+      COALESCE(NULLIF(TRIM(fp.contact_email), ''), fu.email) AS "freelancerContactEmail",
+      COALESCE(NULLIF(TRIM(fp.contact_phone), ''), fu.phone) AS "freelancerContactPhone"
       ${applicantSelect}
      FROM projects p
      INNER JOIN users u ON u.id = p.business_id
@@ -157,18 +157,21 @@ async function list({
   return rows.map(normalizeProjectRow);
 }
 
-async function listByBusiness(businessId) {
+async function listByBusiness(businessId, { limit = 20, offset = 0 } = {}) {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
+  const safeOffset = Math.max(0, Number(offset) || 0);
   const [rows] = await pool.execute(
-    `SELECT id, business_id AS businessId, title, description, budget,
-      skills_required AS skillsRequired, deadline, status, freelancer_id AS freelancerId,
-      reference_link AS referenceLink, reference_files AS referenceFiles,
-      submission_text AS submissionText, submission_link AS submissionLink,
-      submission_files AS submissionFiles, created_at AS createdAt,
-      NULL AS freelancerContactEmail, NULL AS freelancerContactPhone
+    `SELECT id, business_id AS "businessId", title, description, budget,
+      skills_required AS "skillsRequired", deadline, status, freelancer_id AS "freelancerId",
+      reference_link AS "referenceLink", reference_files AS "referenceFiles",
+      submission_text AS "submissionText", submission_link AS "submissionLink",
+      submission_files AS "submissionFiles", created_at AS "createdAt",
+      NULL AS "freelancerContactEmail", NULL AS "freelancerContactPhone"
      FROM projects
      WHERE business_id = ?
-     ORDER BY created_at DESC`,
-    [businessId],
+     ORDER BY created_at DESC
+     LIMIT ? OFFSET ?`,
+    [businessId, safeLimit, safeOffset],
   );
   return rows.map(normalizeProjectRow);
 }
@@ -178,7 +181,7 @@ async function acceptProjectTx(projectId, freelancerId) {
   try {
     await connection.beginTransaction();
     const [rows] = await connection.execute(
-      'SELECT id, status, freelancer_id AS freelancerId FROM projects WHERE id = ? FOR UPDATE',
+      'SELECT id, status, freelancer_id AS "freelancerId" FROM projects WHERE id = ? FOR UPDATE',
       [projectId],
     );
     const project = rows[0];
@@ -240,7 +243,7 @@ async function userMayAccessUploadedFile(filename, userId) {
   if (projectRows[0]) return true;
 
   const [ownProfile] = await pool.execute(
-    `SELECT user_id AS userId FROM freelancer_profiles
+    `SELECT user_id AS "userId" FROM freelancer_profiles
      WHERE user_id = ? AND profile_photo_url LIKE ?
      LIMIT 1`,
     [userId, like],
