@@ -19,8 +19,16 @@ function errorHandler(err, req, res, next) {
   }
 
   if (err instanceof ZodError || (err && err.name === 'ZodError')) {
+    const fieldErrors = {};
+    const issues = Array.isArray(err.issues) ? err.issues : [];
+    for (const issue of issues) {
+      const key = String(issue?.path?.[0] || '').trim();
+      if (!key || fieldErrors[key]) continue;
+      fieldErrors[key] = String(issue?.message || 'Invalid value');
+    }
     return res.status(400).json({
       error: 'Validation failed. Please check your input.',
+      fieldErrors,
     });
   }
 
