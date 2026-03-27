@@ -27,6 +27,7 @@ try {
 
 const mockDb = require('../utils/mockDb');
 let useMock = false;
+const allowMockFallback = env.nodeEnv !== 'production';
 
 function isUnreachableError(err) {
   const code = err && err.code;
@@ -52,10 +53,13 @@ const wrappedPool = {
       return await runQuery(pool, sql, params);
     } catch (err) {
       if (isUnreachableError(err)) {
-        console.warn(`[DB] PostgreSQL UNREACHABLE (${err.code}). Switching to IN-MEMORY MOCK DB...`);
-        useMock = true;
-        mockDb.warnActivated();
-        return mockDb.query(sql, params);
+        if (allowMockFallback) {
+          console.warn(`[DB] PostgreSQL UNREACHABLE (${err.code}). Switching to IN-MEMORY MOCK DB...`);
+          useMock = true;
+          mockDb.warnActivated();
+          return mockDb.query(sql, params);
+        }
+        console.error(`[DB] PostgreSQL UNREACHABLE (${err.code}). Mock fallback is disabled in production.`);
       }
       throw err;
     }
@@ -87,10 +91,13 @@ const wrappedPool = {
       };
     } catch (err) {
       if (isUnreachableError(err)) {
-        console.warn(`[DB] Failed to connect (${err.code}). Fallback to mock.`);
-        useMock = true;
-        mockDb.warnActivated();
-        return mockDb;
+        if (allowMockFallback) {
+          console.warn(`[DB] Failed to connect (${err.code}). Fallback to mock.`);
+          useMock = true;
+          mockDb.warnActivated();
+          return mockDb;
+        }
+        console.error(`[DB] Failed to connect (${err.code}). Mock fallback is disabled in production.`);
       }
       throw err;
     }
