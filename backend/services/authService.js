@@ -86,19 +86,23 @@ async function register(data, meta = {}) {
     throw new ApiError(409, 'Registration could not be completed. Please check your details.');
   }
 
-  const existingPhone = await userModel.findByPhone(payload.contactPhone);
-  if (existingPhone) {
-    securityLog('register_failure', {
-      identifier: anonymizeIdentifier(payload.email),
-      reason: 'phone_exists',
-      ip: meta.ip,
-      requestId: meta.requestId,
-    });
-    throw new ApiError(409, 'Registration could not be completed. Please check your details.');
-  }
-
   const passwordHash = await bcrypt.hash(normalizedPassword, 10);
-  const user = await userModel.create({ ...payload, passwordHash });
+  let user;
+  try {
+    user = await userModel.create({ ...payload, passwordHash });
+  } catch (error) {
+    // Handle race conditions where another request created the same email.
+    if (error?.code === '23505' || error?.code === 'ER_DUP_ENTRY') {
+      securityLog('register_failure', {
+        identifier: anonymizeIdentifier(payload.email),
+        reason: 'email_exists_race',
+        ip: meta.ip,
+        requestId: meta.requestId,
+      });
+      throw new ApiError(409, 'Registration could not be completed. Please check your details.');
+    }
+    throw error;
+  }
 
   return user;
 }
