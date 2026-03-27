@@ -25,7 +25,13 @@ const forgotPasswordSchema = z.object({
 
 function normalizeBcryptHash(raw) {
   if (!raw || typeof raw !== 'string') return '';
-  const hash = raw.trim();
+  let hash = raw.trim();
+  if (
+    (hash.startsWith('"') && hash.endsWith('"'))
+    || (hash.startsWith("'") && hash.endsWith("'"))
+  ) {
+    hash = hash.slice(1, -1).trim();
+  }
   // Imported datasets from other stacks sometimes store bcrypt as $2y$ / $2x$.
   if (hash.startsWith('$2y$')) return `$2b$${hash.slice(4)}`;
   if (hash.startsWith('$2x$')) return `$2b$${hash.slice(4)}`;
@@ -64,12 +70,22 @@ async function login(data) {
     throw new ApiError(401, 'Invalid credentials');
   }
 
+  const passwordCandidates = [payload.password];
+  const trimmed = payload.password.trim();
+  if (trimmed && trimmed !== payload.password) {
+    passwordCandidates.push(trimmed);
+  }
+
   let valid = false;
-  try {
-    valid = await bcrypt.compare(payload.password, normalizedHash);
-  } catch {
-    // Corrupted/non-bcrypt hashes should not surface as 500.
-    throw new ApiError(401, 'Invalid credentials');
+  for (const candidate of passwordCandidates) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      valid = await bcrypt.compare(candidate, normalizedHash);
+      if (valid) break;
+    } catch {
+      // Corrupted/non-bcrypt hashes should not surface as 500.
+      throw new ApiError(401, 'Invalid credentials');
+    }
   }
   if (!valid) {
     throw new ApiError(401, 'Invalid credentials');
