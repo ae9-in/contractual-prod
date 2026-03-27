@@ -167,10 +167,10 @@ async function listByBusiness(businessId, { limit = 20, offset = 0 } = {}) {
   const [rows] = await pool.execute(
     `SELECT p.id, p.business_id AS "businessId", p.title, p.description,
       COALESCE(p.budget, pp.amount, 0) AS budget,
-      skills_required AS "skillsRequired", deadline, status, freelancer_id AS "freelancerId",
-      reference_link AS "referenceLink", reference_files AS "referenceFiles",
-      submission_text AS "submissionText", submission_link AS "submissionLink",
-      submission_files AS "submissionFiles", created_at AS "createdAt",
+      p.skills_required AS "skillsRequired", p.deadline, p.status, p.freelancer_id AS "freelancerId",
+      p.reference_link AS "referenceLink", p.reference_files AS "referenceFiles",
+      p.submission_text AS "submissionText", p.submission_link AS "submissionLink",
+      p.submission_files AS "submissionFiles", p.created_at AS "createdAt",
       NULL AS "freelancerContactEmail", NULL AS "freelancerContactPhone"
      FROM projects p
      LEFT JOIN project_payments pp ON pp.project_id = p.id

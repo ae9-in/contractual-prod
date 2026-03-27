@@ -9,6 +9,12 @@ function toProjectResponse(project, { isOwner }) {
   return sanitizeProjectForClient(project, { isOwner });
 }
 
+function parseOptionalNumber(value) {
+  if (value == null || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 exports.createProject = asyncHandler(async (req, res) => {
   const payload = { ...req.body, projectReferenceFiles: req.files || [] };
   const project = await projectService.createProject(payload, req.user.id);
@@ -25,8 +31,8 @@ exports.getProjects = asyncHandler(async (req, res) => {
 
   const filters = {
     status: req.query.status,
-    minBudget: req.query.minBudget ? Number(req.query.minBudget) : undefined,
-    maxBudget: req.query.maxBudget ? Number(req.query.maxBudget) : undefined,
+    minBudget: parseOptionalNumber(req.query.minBudget),
+    maxBudget: parseOptionalNumber(req.query.maxBudget),
     skill: req.query.skill,
     freelancerId: req.query.assignedToMe === 'true' ? req.user.id : undefined,
     viewerId: req.user.id,
