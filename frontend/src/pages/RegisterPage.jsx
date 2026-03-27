@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserPlus, Mail, Lock, User, UserCircle, Phone } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, UserCircle, Phone, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import Card from '../components/ui/Card';
@@ -24,6 +24,7 @@ export default function RegisterPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -131,12 +132,34 @@ export default function RegisterPage() {
                   id="reg-password"
                   className="input"
                   placeholder="At least 8 characters"
-                  type="password"
-                  style={{ paddingLeft: '52px' }}
+                  type={showPassword ? 'text' : 'password'}
+                  style={{ paddingLeft: '52px', paddingRight: '52px' }}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   disabled={isSubmitting}
                 />
+                <button
+                  type="button"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  style={{
+                    position: 'absolute',
+                    right: '18px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#818cf8',
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  disabled={isSubmitting}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
               {fieldErrors.password && <p className="field-error" style={{ fontSize: '0.9rem', color: '#ef4444', fontWeight: 600 }}>{fieldErrors.password}</p>}
             </div>

@@ -1,13 +1,32 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock, ArrowRight } from 'lucide-react';
+import { LogIn, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { getApiErrorMessage, getApiFieldErrors } from '../utils/validation';
-import { getStoredUserRaw } from '../utils/authStorage';
+import { getMyProjects, getProjects } from '../services/projectService';
+import { getNotifications, getUnreadProjectNotifications } from '../services/notificationService';
+
+function prefetchPostLogin(user) {
+  if (!user?.role) return;
+  // Fire-and-forget dashboard prefetch for faster first meaningful paint.
+  if (user.role === 'business') {
+    Promise.allSettled([
+      getMyProjects(),
+      getNotifications({ limit: 10 }),
+      getUnreadProjectNotifications(),
+    ]);
+    return;
+  }
+  Promise.allSettled([
+    getProjects({ assignedToMe: true }),
+    getNotifications({ limit: 10 }),
+    getUnreadProjectNotifications(),
+  ]);
+}
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -17,6 +36,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,9 +44,8 @@ export default function LoginPage() {
     setFieldErrors({});
     setIsSubmitting(true);
     try {
-      await login(form);
-      const rawUser = getStoredUserRaw();
-      const user = rawUser ? JSON.parse(rawUser) : {};
+      const user = await login(form);
+      prefetchPostLogin(user);
       addToast(`Welcome back, ${user.name}! Great to see you again.`, 'success');
       navigate(user.role === 'business' ? '/business/dashboard' : '/freelancer/dashboard');
     } catch (err) {
@@ -104,12 +123,34 @@ export default function LoginPage() {
                   id="password"
                   className="input"
                   placeholder="Enter password"
-                  type="password"
-                  style={{ paddingLeft: '48px', height: '52px', borderRadius: '14px' }}
+                  type={showPassword ? 'text' : 'password'}
+                  style={{ paddingLeft: '48px', paddingRight: '48px', height: '52px', borderRadius: '14px' }}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   disabled={isSubmitting}
                 />
+                <button
+                  type="button"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  style={{
+                    position: 'absolute',
+                    right: '14px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#818cf8',
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  disabled={isSubmitting}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
               </div>
               {fieldErrors.password && <p style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 600, margin: 0 }}>{fieldErrors.password}</p>}
               <p style={{ margin: 0, textAlign: 'right' }}>
