@@ -13,6 +13,10 @@ const api = axios.create({
   timeout: 15000,
 });
 
+if (import.meta.env.MODE !== 'production' || baseApiUrl?.includes('localhost') || baseApiUrl?.includes('127.0.0.1')) {
+  console.log('[API] Initialized with baseURL:', api.defaults.baseURL);
+}
+
 api.interceptors.request.use((config) => {
   const token = getStoredToken();
   if (token) {

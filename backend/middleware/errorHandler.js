@@ -49,9 +49,18 @@ function errorHandler(err, req, res, next) {
     return res.status(err.statusCode).json({ error: err.message });
   }
 
-  return res.status(500).json({
+  const response = {
     error: 'Something went wrong. Please try again.',
-  });
+  };
+  if (process.env.NODE_ENV !== 'production') {
+    response.debug = {
+      message: err?.message,
+      code: err?.code,
+      stack: err?.stack,
+    };
+  }
+
+  return res.status(500).json(response);
 }
 
 module.exports = errorHandler;
