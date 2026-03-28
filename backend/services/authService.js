@@ -169,7 +169,7 @@ async function login(data, meta = {}) {
 
   const token = jwt.sign(
     {
-      sub: matchedUser.id,
+      sub: String(matchedUser.id),
       role: matchedUser.role,
       email: matchedUser.email,
       name: matchedUser.name,

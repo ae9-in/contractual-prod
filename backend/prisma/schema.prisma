@@ -8,6 +8,238 @@ datasource db {
 }
 
 model User {
-  id    Int    @id @default(autoincrement())
-  name  String
+  id           BigInt                @id @default(autoincrement())
+  name         String                @db.VarChar(120)
+  email        String?               @unique @db.VarChar(190)
+  phone        String?               @unique @db.VarChar(30)
+  passwordHash String                @map("password_hash") @db.VarChar(255)
+  role         UserRole
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  
+  projectsAsBusiness   Project[]       @relation("BusinessProjects")
+  projectsAsFreelancer Project[]       @relation("FreelancerProjects")
+  profile              FreelancerProfile?
+  messages             Message[]
+  notifications        Notification[]
+  ratingsGiven         ProjectRating[] @relation("Rater")
+  ratingsReceived      ProjectRating[] @relation("RatedUser")
+  applications         ProjectApplication[]
+  paymentTransactions  ProjectPaymentTransaction[]
+  paymentOrders        ProjectPaymentOrder[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  business
+  freelancer
+}
+
+model Project {
+  id             BigInt     @id @default(autoincrement())
+  businessId     BigInt     @map("business_id")
+  freelancerId   BigInt?    @map("freelancer_id")
+  title          String     @db.VarChar(180)
+  description    String     @db.Text
+  budget         Decimal    @db.Decimal(12, 2)
+  skillsRequired String     @map("skills_required") @db.Text
+  deadline       DateTime   @db.Date
+  referenceLink  String?    @map("reference_link") @db.VarChar(500)
+  referenceFiles Json?      @map("reference_files")
+  submissionText String?    @map("submission_text") @db.Text
+  submissionLink String?    @map("submission_link") @db.VarChar(500)
+  submissionFiles Json?     @map("submission_files")
+  status         ProjectStatus @default(Open)
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  business       User       @relation("BusinessProjects", fields: [businessId], references: [id], onDelete: Cascade)
+  freelancer     User?      @relation("FreelancerProjects", fields: [freelancerId], references: [id], onDelete: SetNull)
+  messages       Message[]
+  notifications  Notification[]
+  ratings        ProjectRating[]
+  applications   ProjectApplication[]
+  payment        ProjectPayment?
+  paymentTransactions ProjectPaymentTransaction[]
+  paymentOrders  ProjectPaymentOrder[]
+
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  Open
+  Assigned
+  Submitted
+  Completed
+}
+
+model FreelancerProfile {
+  userId              BigInt   @id @map("user_id")
+  skills              String   @db.Text
+  bio                 String?  @db.Text
+  portfolioLink       String?  @map("portfolio_link") @db.VarChar(255)
+  experienceYears     Int      @default(0) @map("experience_years")
+  profilePhotoUrl     String?  @map("profile_photo_url") @db.VarChar(500)
+  organizationName    String?  @map("organization_name") @db.VarChar(150)
+  organizationWebsite String?  @map("organization_website") @db.VarChar(255)
+  organizationIndustry String? @map("organization_industry") @db.VarChar(120)
+  contactEmail        String?  @map("contact_email") @db.VarChar(190)
+  contactPhone        String?  @map("contact_phone") @db.VarChar(30)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("freelancer_profiles")
+}
+
+model Message {
+  id          BigInt   @id @default(autoincrement())
+  projectId   BigInt   @map("project_id")
+  senderId    BigInt   @map("sender_id")
+  messageText String   @map("message_text") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sender      User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+model Notification {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt   @map("user_id")
+  projectId   BigInt?  @map("project_id")
+  type        String   @db.VarChar(50)
+  title       String   @db.VarChar(140)
+  messageText String   @map("message_text") @db.Text
+  isRead      Boolean  @default(false) @map("is_read")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("notifications")
+}
+
+model ProjectRating {
+  id          BigInt   @id @default(autoincrement())
+  projectId   BigInt   @map("project_id")
+  raterId     BigInt   @map("rater_id")
+  ratedUserId BigInt   @map("rated_user_id")
+  rating      Int      @db.SmallInt
+  reviewText  String?  @map("review_text") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  rater       User     @relation("Rater", fields: [raterId], references: [id], onDelete: Cascade)
+  ratedUser   User     @relation("RatedUser", fields: [ratedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, raterId])
+  @@map("project_ratings")
+}
+
+model ProjectApplication {
+  id           BigInt            @id @default(autoincrement())
+  projectId    BigInt            @map("project_id")
+  freelancerId BigInt            @map("freelancer_id")
+  coverLetter  String?           @map("cover_letter") @db.Text
+  status       ApplicationStatus @default(Pending)
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  freelancer   User              @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, freelancerId])
+  @@map("project_applications")
+}
+
+enum ApplicationStatus {
+  Pending
+  Accepted
+  Rejected
+}
+
+model ProjectPayment {
+  id         BigInt        @id @default(autoincrement())
+  projectId  BigInt        @unique @map("project_id")
+  amount     Decimal       @db.Decimal(12, 2)
+  tipTotal   Decimal       @default(0.00) @map("tip_total") @db.Decimal(12, 2)
+  status     PaymentStatus @default(Unfunded)
+  fundedAt   DateTime?     @map("funded_at") @db.Timestamptz
+  releasedAt DateTime?     @map("released_at") @db.Timestamptz
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  transactions ProjectPaymentTransaction[]
+  orders     ProjectPaymentOrder[]
+
+  @@map("project_payments")
+}
+
+enum PaymentStatus {
+  Unfunded
+  Funded
+  Released
+}
+
+model ProjectPaymentTransaction {
+  id          BigInt          @id @default(autoincrement())
+  paymentId   BigInt          @map("payment_id")
+  projectId   BigInt          @map("project_id")
+  actorUserId BigInt?         @map("actor_user_id")
+  type        TransactionType
+  amount      Decimal         @db.Decimal(12, 2)
+  note        String?         @db.VarChar(255)
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  payment     ProjectPayment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actor       User?           @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@map("project_payment_transactions")
+}
+
+enum TransactionType {
+  Funded
+  Released
+  Tip
+}
+
+model ProjectPaymentOrder {
+  id               BigInt      @id @default(autoincrement())
+  projectId        BigInt      @map("project_id")
+  paymentId        BigInt      @map("payment_id")
+  businessId       BigInt      @map("business_id")
+  purpose          OrderPurpose
+  amountPaise      BigInt      @map("amount_paise")
+  currency         String      @default("INR") @db.Char(3)
+  provider         String      @default("razorpay") @db.VarChar(30)
+  providerOrderId  String      @unique @map("provider_order_id") @db.VarChar(120)
+  providerPaymentId String?     @map("provider_payment_id") @db.VarChar(120)
+  providerSignature String?    @map("provider_signature") @db.VarChar(255)
+  note             String?     @db.VarChar(255)
+  status           OrderStatus @default(Created)
+  paidAt           DateTime?   @map("paid_at") @db.Timestamptz
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  project          Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  payment          ProjectPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  business         User        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("project_payment_orders")
+}
+
+enum OrderPurpose {
+  Escrow
+  Tip
+}
+
+enum OrderStatus {
+  Created
+  Paid
+  Failed
 }
