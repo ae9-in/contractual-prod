@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node -e \"console.log('Backend build: no compile step required')\"",
     "dev": "nodemon server.js",
-    "start": "node server.js",
+    "start": "npm run migrate && node server.js",
     "smoke": "node scripts/smoke.js",
     "migrate": "node scripts/migrate.js",
     "test": "node --test \"tests/**/*.test.js\""
