@@ -53,7 +53,7 @@ app.use((_req, res, next) => {
 const allowedOrigins = env.corsOrigins;
 const corsOptions = {
   origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
+    if (!origin || allowedOrigins.includes('*')) return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
     return cb(new Error('Origin not allowed by CORS'));
   },
