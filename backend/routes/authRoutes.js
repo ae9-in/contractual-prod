@@ -1,6 +1,5 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { ipKeyGenerator } = rateLimit;
 const authController = require('../controllers/authController');
 const { createRateLimiter } = require('../middleware/rateLimitMiddleware');
 
@@ -11,7 +10,7 @@ const resetRequestLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
   keyGenerator: (req) => {
-    const ip = ipKeyGenerator(req.ip || req.socket?.remoteAddress || 'unknown');
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const email = String(req.body?.email || '').trim().toLowerCase();
     return `reset:request:${ip}:${email || 'unknown'}`;
   },
@@ -23,7 +22,7 @@ const resetConfirmLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
   keyGenerator: (req) => {
-    const ip = ipKeyGenerator(req.ip || req.socket?.remoteAddress || 'unknown');
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const tokenPrefix = String(req.body?.token || '').trim().slice(0, 12);
     return `reset:confirm:${ip}:${tokenPrefix || 'unknown'}`;
   },

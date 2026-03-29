@@ -4,7 +4,6 @@ const compression = require('compression');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { ipKeyGenerator } = rateLimit;
 const env = require('./config/env');
 const authRoutes = require('./routes/authRoutes');
 const projectRoutes = require('./routes/projectRoutes');
@@ -71,7 +70,7 @@ const loginLimiter = rateLimit({
   max: Number(process.env.RATE_LIMIT_LOGIN_MAX || 30),
   // Shared IPs are common on mobile/carrier networks, so key by IP+email.
   keyGenerator: (req) => {
-    const ip = ipKeyGenerator(req.ip || req.socket?.remoteAddress || 'unknown');
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const email = String(req.body?.email || '').trim().toLowerCase();
     return `login:${ip}:${email || 'unknown'}`;
   },
