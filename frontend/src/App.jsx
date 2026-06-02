@@ -23,6 +23,9 @@ const MyProjectsPage = lazy(() => import('./pages/MyProjectsPage'));
 const MyWorkPage = lazy(() => import('./pages/MyWorkPage'));
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const TemplatesHubPage = lazy(() => import('./pages/TemplatesHubPage'));
+const TemplateDetailPage = lazy(() => import('./pages/TemplateDetailPage'));
+const AuthorBioPage = lazy(() => import('./pages/AuthorBioPage'));
 
 function AnimatedRoutes() {
   const { user, isAuthenticated } = useAuth();
@@ -44,6 +47,9 @@ function AnimatedRoutes() {
             <Route path="/login" element={isAuthenticated ? <Navigate to={roleHome} replace /> : <LoginPage />} />
             <Route path="/register" element={isAuthenticated ? <Navigate to={roleHome} replace /> : <RegisterPage />} />
             <Route path="/forgot-password" element={isAuthenticated ? <Navigate to={roleHome} replace /> : <ForgotPasswordPage />} />
+            <Route path="/templates" element={<TemplatesHubPage />} />
+            <Route path="/templates/:slug" element={<TemplateDetailPage />} />
+            <Route path="/authors/:slug" element={<AuthorBioPage />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/projects/:id" element={<ProjectDetailPage />} />

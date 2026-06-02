@@ -218,6 +218,7 @@ export default function Navbar() {
             {(!isAuthenticated || isLandingPage) && (
               <NavLink className={cls} to="/" onClick={() => setOpen(false)}>Home</NavLink>
             )}
+            <NavLink className={cls} to="/templates" onClick={() => setOpen(false)}>Templates</NavLink>
 
             {isAuthenticated && !isLandingPage && roleLinks.map((item) => {
               const Icon = item.icon;
@@ -288,6 +289,7 @@ export default function Navbar() {
         {(!isAuthenticated || isLandingPage) && (
           <NavLink className={cls} to="/" onClick={() => setOpen(false)}>Home</NavLink>
         )}
+        <NavLink className={cls} to="/templates" onClick={() => setOpen(false)}>Templates</NavLink>
 
         {isAuthenticated && !isLandingPage && roleLinks.map((item) => {
           const Icon = item.icon;

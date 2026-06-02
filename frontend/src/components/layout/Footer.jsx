@@ -99,14 +99,20 @@ export default function Footer() {
         <div>
           <h4 style={{ color: '#ffffff', fontWeight: 800, marginBottom: '24px', fontFamily: '"Outfit", sans-serif', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.8rem' }}>Resources</h4>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '14px' }}>
-            {['Knowledge Base', 'Expert Playbooks', 'Strategic Insights', 'Neural API', 'Developer Lobby'].map(link => (
-              <li key={link}>
-                <a href="#" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '0.92rem', transition: 'all 0.2s ease', fontWeight: 500 }}
+            {[
+              { label: 'Contract Templates Hub', to: '/templates' },
+              { label: 'Mutual NDA Template', to: '/templates/mutual-nda' },
+              { label: 'Freelance Developer Contract', to: '/templates/freelance-developer-contract' },
+              { label: 'SaaS Terms of Service', to: '/templates/saas-terms-of-service' },
+              { label: 'Legal Expert Credentials', to: '/authors/sarah-jenkins' }
+            ].map(link => (
+              <li key={link.label}>
+                <Link to={link.to} style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '0.92rem', transition: 'all 0.2s ease', fontWeight: 500 }}
                   onMouseOver={e => e.currentTarget.style.color = '#60a5fa'}
                   onMouseOut={e => e.currentTarget.style.color = '#94a3b8'}
                 >
-                  {link}
-                </a>
+                  {link.label}
+                </Link>
               </li>
             ))}
           </ul>
